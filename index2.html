@@ -1,0 +1,2915 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Társ – Magyar Hangalapú Beszélgetőpartner</title>
+<style>
+  :root {
+    --bg: #0f0f1a;
+    --bg2: #1a1a2e;
+    --bg3: #16213e;
+    --card: #1e1e35;
+    --card2: #252545;
+    --accent: #7c6ff7;
+    --accent2: #a78bfa;
+    --accent3: #c4b5fd;
+    --green: #34d399;
+    --red: #f87171;
+    --yellow: #fbbf24;
+    --orange: #fb923c;
+    --blue: #60a5fa;
+    --pink: #f472b6;
+    --text: #e2e8f0;
+    --text2: #94a3b8;
+    --text3: #64748b;
+    --border: #2d2d55;
+    --shadow: 0 4px 24px rgba(0,0,0,0.4);
+    --radius: 14px;
+    --radius-sm: 8px;
+    --transition: 0.22s cubic-bezier(.4,0,.2,1);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  /* HEADER */
+  .header {
+    background: linear-gradient(135deg, #1a1a3e 0%, #0f0f2a 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 64px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(10px);
+  }
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 1.3rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--accent2), var(--pink));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .logo-icon {
+    width: 36px; height: 36px;
+    background: linear-gradient(135deg, var(--accent), var(--pink));
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.2rem;
+  }
+  .header-status {
+    display: flex; align-items: center; gap: 16px;
+    font-size: 0.8rem; color: var(--text2);
+  }
+  .status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--text3);
+    display: inline-block;
+    transition: var(--transition);
+  }
+  .status-dot.active { background: var(--green); box-shadow: 0 0 8px var(--green); }
+  .status-dot.error { background: var(--red); box-shadow: 0 0 8px var(--red); }
+
+  /* TABS */
+  .tabs {
+    display: flex;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    overflow-x: auto;
+    gap: 4px;
+    scrollbar-width: none;
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab {
+    padding: 14px 20px;
+    cursor: pointer;
+    font-size: 0.88rem;
+    font-weight: 500;
+    color: var(--text2);
+    border-bottom: 2px solid transparent;
+    white-space: nowrap;
+    transition: var(--transition);
+    display: flex; align-items: center; gap: 7px;
+  }
+  .tab:hover { color: var(--accent2); }
+  .tab.active {
+    color: var(--accent2);
+    border-bottom-color: var(--accent);
+    background: linear-gradient(to bottom, transparent, rgba(124,111,247,0.08));
+  }
+
+  /* LAYOUT */
+  .main { display: flex; height: calc(100vh - 113px); }
+  .sidebar {
+    width: 300px;
+    min-width: 220px;
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+  .content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  /* CARDS */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px;
+  }
+  .card-title {
+    font-size: 0.82rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text2);
+    margin-bottom: 14px;
+    display: flex; align-items: center; gap: 7px;
+  }
+  .card-title span { font-size: 1rem; }
+
+  /* HIDDEN PANELS */
+  .panel { display: none; flex: 1; flex-direction: column; overflow: hidden; }
+  .panel.active { display: flex; }
+
+  /* CHAT AREA */
+  .chat-wrap {
+    display: flex; flex-direction: column; height: 100%;
+    background: var(--bg);
+  }
+  .chat-avatar-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 0 16px;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+  .ai-avatar {
+    width: 90px; height: 90px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--pink));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2.5rem;
+    position: relative;
+    transition: var(--transition);
+    box-shadow: 0 0 0 0 rgba(124,111,247,0.4);
+  }
+  .ai-avatar.listening {
+    animation: pulse-listen 1.2s infinite;
+    box-shadow: 0 0 0 0 rgba(96,165,250,0.7);
+  }
+  .ai-avatar.speaking {
+    animation: pulse-speak 0.8s infinite;
+    box-shadow: 0 0 0 0 rgba(52,211,153,0.7);
+  }
+  @keyframes pulse-listen {
+    0% { box-shadow: 0 0 0 0 rgba(96,165,250,0.7); }
+    70% { box-shadow: 0 0 0 20px rgba(96,165,250,0); }
+    100% { box-shadow: 0 0 0 0 rgba(96,165,250,0); }
+  }
+  @keyframes pulse-speak {
+    0% { box-shadow: 0 0 0 0 rgba(52,211,153,0.7); }
+    70% { box-shadow: 0 0 0 20px rgba(52,211,153,0); }
+    100% { box-shadow: 0 0 0 0 rgba(52,211,153,0); }
+  }
+  .ai-status-text {
+    font-size: 0.9rem;
+    color: var(--text2);
+    font-weight: 500;
+    min-height: 24px;
+  }
+  .mood-bar {
+    width: 200px; height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .mood-fill {
+    height: 100%;
+    border-radius: 3px;
+    background: linear-gradient(90deg, var(--blue), var(--accent), var(--pink));
+    transition: width 0.5s ease;
+    width: 50%;
+  }
+
+  /* MESSAGES */
+  .messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    scroll-behavior: smooth;
+  }
+  .messages::-webkit-scrollbar { width: 4px; }
+  .messages::-webkit-scrollbar-track { background: transparent; }
+  .messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  .msg {
+    display: flex;
+    gap: 10px;
+    max-width: 80%;
+    animation: fadeInUp 0.3s ease;
+  }
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .msg.user { align-self: flex-end; flex-direction: row-reverse; }
+  .msg.ai { align-self: flex-start; }
+  .msg-avatar {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.9rem;
+  }
+  .msg.ai .msg-avatar { background: linear-gradient(135deg, var(--accent), var(--pink)); }
+  .msg.user .msg-avatar { background: linear-gradient(135deg, var(--blue), var(--accent)); }
+  .msg-bubble {
+    padding: 10px 14px;
+    border-radius: 16px;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    max-width: 100%;
+    word-break: break-word;
+  }
+  .msg.ai .msg-bubble {
+    background: var(--card2);
+    border: 1px solid var(--border);
+    border-bottom-left-radius: 4px;
+    color: var(--text);
+  }
+  .msg.user .msg-bubble {
+    background: linear-gradient(135deg, var(--accent), #6d28d9);
+    border-bottom-right-radius: 4px;
+    color: #fff;
+  }
+  .msg-time {
+    font-size: 0.7rem;
+    color: var(--text3);
+    margin-top: 4px;
+    text-align: right;
+  }
+  .msg.ai .msg-time { text-align: left; }
+  .typing-indicator {
+    display: flex; gap: 4px; padding: 12px 14px;
+    background: var(--card2);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    border-bottom-left-radius: 4px;
+    width: fit-content;
+  }
+  .typing-dot {
+    width: 7px; height: 7px;
+    background: var(--text2);
+    border-radius: 50%;
+    animation: typing 1.4s infinite ease-in-out;
+  }
+  .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes typing {
+    0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+    30% { transform: translateY(-6px); opacity: 1; }
+  }
+
+  /* INPUT AREA */
+  .input-area {
+    padding: 16px 20px;
+    background: var(--bg2);
+    border-top: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+  .input-row {
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+  }
+  .text-input {
+    flex: 1;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 22px;
+    padding: 10px 18px;
+    color: var(--text);
+    font-size: 0.92rem;
+    resize: none;
+    outline: none;
+    transition: var(--transition);
+    max-height: 120px;
+    font-family: inherit;
+  }
+  .text-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(124,111,247,0.15); }
+  .text-input::placeholder { color: var(--text3); }
+  .btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 22px;
+    cursor: pointer;
+    font-size: 0.88rem;
+    font-weight: 600;
+    transition: var(--transition);
+    display: flex; align-items: center; gap: 6px;
+    white-space: nowrap;
+  }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent), #6d28d9);
+    color: #fff;
+  }
+  .btn-primary:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(124,111,247,0.4); }
+  .btn-secondary {
+    background: var(--card2);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .btn-secondary:hover:not(:disabled) { background: var(--border); }
+  .btn-danger {
+    background: rgba(248,113,113,0.15);
+    color: var(--red);
+    border: 1px solid rgba(248,113,113,0.3);
+  }
+  .btn-danger:hover:not(:disabled) { background: rgba(248,113,113,0.25); }
+  .btn-green {
+    background: linear-gradient(135deg, var(--green), #059669);
+    color: #fff;
+  }
+  .btn-green:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(52,211,153,0.4); }
+  .btn-icon {
+    width: 44px; height: 44px; padding: 0;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem;
+  }
+  .mic-btn {
+    width: 64px; height: 64px;
+    border-radius: 50%;
+    border: none;
+    background: linear-gradient(135deg, var(--accent), #6d28d9);
+    color: #fff;
+    font-size: 1.6rem;
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: var(--shadow);
+    position: relative;
+    margin: 0 auto;
+  }
+  .mic-btn:hover { transform: scale(1.05); }
+  .mic-btn.recording {
+    background: linear-gradient(135deg, var(--red), #dc2626);
+    animation: mic-pulse 1s infinite;
+  }
+  @keyframes mic-pulse {
+    0% { box-shadow: 0 0 0 0 rgba(248,113,113,0.5); }
+    70% { box-shadow: 0 0 0 16px rgba(248,113,113,0); }
+    100% { box-shadow: 0 0 0 0 rgba(248,113,113,0); }
+  }
+  .voice-controls {
+    display: flex; align-items: center; gap: 12px;
+    justify-content: center; flex-wrap: wrap;
+  }
+  .voice-hint { font-size: 0.78rem; color: var(--text3); text-align: center; }
+
+  /* WAVEFORM */
+  .waveform {
+    display: flex; align-items: center; justify-content: center;
+    gap: 3px; height: 40px;
+  }
+  .wave-bar {
+    width: 3px;
+    background: var(--accent2);
+    border-radius: 2px;
+    transition: height 0.1s ease;
+    min-height: 3px;
+  }
+
+  /* SETTINGS FORM */
+  .form-group { margin-bottom: 14px; }
+  .form-label {
+    display: block;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text2);
+    margin-bottom: 6px;
+  }
+  .form-input, .form-select, .form-textarea {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 9px 12px;
+    color: var(--text);
+    font-size: 0.88rem;
+    outline: none;
+    transition: var(--transition);
+    font-family: inherit;
+  }
+  .form-input:focus, .form-select:focus, .form-textarea:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(124,111,247,0.15);
+  }
+  .form-input::placeholder, .form-textarea::placeholder { color: var(--text3); }
+  .form-select option { background: var(--bg2); }
+  .form-textarea { resize: vertical; min-height: 70px; }
+
+  /* RANGE SLIDER */
+  .slider-wrap { display: flex; align-items: center; gap: 10px; }
+  .slider {
+    flex: 1;
+    -webkit-appearance: none;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    outline: none;
+  }
+  .slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    transition: var(--transition);
+    box-shadow: 0 0 0 3px rgba(124,111,247,0.2);
+  }
+  .slider::-webkit-slider-thumb:hover { transform: scale(1.2); }
+  .slider-val {
+    font-size: 0.82rem;
+    color: var(--accent2);
+    font-weight: 600;
+    min-width: 38px;
+    text-align: right;
+  }
+
+  /* PROGRESS BARS */
+  .progress-wrap { margin-bottom: 10px; }
+  .progress-label-row {
+    display: flex; justify-content: space-between;
+    font-size: 0.78rem; color: var(--text2);
+    margin-bottom: 5px;
+  }
+  .progress-bar {
+    height: 7px;
+    background: var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    border-radius: 4px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    transition: width 0.4s ease;
+  }
+  .progress-fill.warning { background: linear-gradient(90deg, var(--yellow), var(--orange)); }
+  .progress-fill.danger { background: linear-gradient(90deg, var(--orange), var(--red)); }
+
+  /* API KEYS */
+  .api-key-item {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: var(--transition);
+  }
+  .api-key-item:hover { border-color: var(--accent); }
+  .api-key-badge {
+    width: 28px; height: 28px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, var(--accent), #6d28d9);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    flex-shrink: 0;
+    color: #fff;
+  }
+  .api-key-input-wrap { flex: 1; position: relative; }
+  .api-key-input-wrap input {
+    width: 100%;
+    background: transparent;
+    border: none;
+    color: var(--text);
+    font-size: 0.82rem;
+    outline: none;
+    font-family: 'Courier New', monospace;
+  }
+  .api-key-status {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .api-key-active-indicator {
+    font-size: 0.72rem;
+    color: var(--text3);
+    white-space: nowrap;
+  }
+  .key-usage-mini {
+    font-size: 0.72rem;
+    color: var(--text3);
+    min-width: 50px;
+    text-align: right;
+  }
+
+  /* PERSONALITY SELECTOR */
+  .personality-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .personality-card {
+    background: var(--bg);
+    border: 2px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px;
+    cursor: pointer;
+    transition: var(--transition);
+    text-align: center;
+  }
+  .personality-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .personality-card.selected {
+    border-color: var(--accent);
+    background: rgba(124,111,247,0.1);
+    box-shadow: 0 0 12px rgba(124,111,247,0.2);
+  }
+  .personality-emoji { font-size: 1.6rem; display: block; margin-bottom: 6px; }
+  .personality-name { font-size: 0.8rem; font-weight: 600; color: var(--text); }
+  .personality-desc { font-size: 0.7rem; color: var(--text2); margin-top: 3px; }
+
+  /* STATS */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  .stat-box {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 14px;
+    text-align: center;
+  }
+  .stat-val {
+    font-size: 1.5rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--accent2), var(--pink));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .stat-label { font-size: 0.72rem; color: var(--text2); margin-top: 3px; }
+
+  /* MEMORY LIST */
+  .memory-item {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    font-size: 0.82rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .memory-text { flex: 1; color: var(--text2); line-height: 1.4; }
+  .memory-time { font-size: 0.7rem; color: var(--text3); flex-shrink: 0; }
+  .memory-del {
+    cursor: pointer; color: var(--red);
+    font-size: 0.8rem;
+    opacity: 0.5;
+    transition: var(--transition);
+    flex-shrink: 0;
+  }
+  .memory-del:hover { opacity: 1; }
+
+  /* TOGGLE */
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .toggle-label { font-size: 0.85rem; color: var(--text2); }
+  .toggle {
+    position: relative;
+    width: 40px; height: 22px;
+    flex-shrink: 0;
+  }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .toggle-slider {
+    position: absolute; inset: 0;
+    background: var(--border);
+    border-radius: 11px;
+    cursor: pointer;
+    transition: var(--transition);
+  }
+  .toggle-slider::before {
+    content: '';
+    position: absolute;
+    width: 16px; height: 16px;
+    left: 3px; bottom: 3px;
+    background: #fff;
+    border-radius: 50%;
+    transition: var(--transition);
+  }
+  .toggle input:checked + .toggle-slider { background: var(--accent); }
+  .toggle input:checked + .toggle-slider::before { transform: translateX(18px); }
+
+  /* BADGE */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 99px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    gap: 4px;
+  }
+  .badge-accent { background: rgba(124,111,247,0.2); color: var(--accent2); border: 1px solid rgba(124,111,247,0.3); }
+  .badge-green { background: rgba(52,211,153,0.2); color: var(--green); border: 1px solid rgba(52,211,153,0.3); }
+  .badge-red { background: rgba(248,113,113,0.2); color: var(--red); border: 1px solid rgba(248,113,113,0.3); }
+  .badge-yellow { background: rgba(251,191,36,0.2); color: var(--yellow); border: 1px solid rgba(251,191,36,0.3); }
+
+  /* NOTIFICATION */
+  .notif-wrap {
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    pointer-events: none;
+  }
+  .notif {
+    padding: 12px 18px;
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+    font-weight: 500;
+    max-width: 320px;
+    animation: notifIn 0.3s ease;
+    pointer-events: all;
+    display: flex; align-items: center; gap: 8px;
+    box-shadow: var(--shadow);
+  }
+  @keyframes notifIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+  .notif.success { background: var(--card2); border-left: 3px solid var(--green); color: var(--text); }
+  .notif.error { background: var(--card2); border-left: 3px solid var(--red); color: var(--text); }
+  .notif.info { background: var(--card2); border-left: 3px solid var(--accent); color: var(--text); }
+  .notif.warning { background: var(--card2); border-left: 3px solid var(--yellow); color: var(--text); }
+
+  /* SCROLLBAR */
+  .sidebar::-webkit-scrollbar, .content::-webkit-scrollbar { width: 4px; }
+  .sidebar::-webkit-scrollbar-track, .content::-webkit-scrollbar-track { background: transparent; }
+  .sidebar::-webkit-scrollbar-thumb, .content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* DIVIDER */
+  .divider { height: 1px; background: var(--border); margin: 8px 0; }
+
+  /* SECTION TITLE */
+  .section-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 6px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .section-sub { font-size: 0.82rem; color: var(--text2); margin-bottom: 16px; }
+
+  /* CHAT HISTORY LIST */
+  .history-item {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: var(--transition);
+  }
+  .history-item:hover { border-color: var(--accent); }
+  .history-title { font-size: 0.85rem; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .history-preview { font-size: 0.78rem; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .history-meta { font-size: 0.7rem; color: var(--text3); margin-top: 6px; display: flex; gap: 10px; }
+
+  /* RESPONSIVE */
+  @media (max-width: 768px) {
+    .sidebar { display: none; }
+    .content { padding: 16px; }
+  }
+
+  /* GROQ KEY ROTATION INDICATOR */
+  .key-rotation {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    margin-top: 6px;
+  }
+  .key-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--border);
+    transition: var(--transition);
+    cursor: default;
+    position: relative;
+  }
+  .key-dot.has-key { background: var(--text3); }
+  .key-dot.active { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .key-dot.used { background: var(--yellow); }
+  .key-dot.exhausted { background: var(--red); }
+
+  /* STREAMING TEXT ANIMATION */
+  .streaming::after {
+    content: '▌';
+    animation: blink 0.7s infinite;
+    color: var(--accent2);
+  }
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+
+  /* TOPIC GRAPH */
+  .topic-chip {
+    display: inline-flex;
+    padding: 4px 10px;
+    background: rgba(124,111,247,0.15);
+    border: 1px solid rgba(124,111,247,0.25);
+    border-radius: 99px;
+    font-size: 0.78rem;
+    color: var(--accent2);
+    margin: 3px;
+    cursor: default;
+  }
+
+  /* INSIGHT BOX */
+  .insight-box {
+    background: linear-gradient(135deg, rgba(124,111,247,0.1), rgba(244,114,182,0.08));
+    border: 1px solid rgba(124,111,247,0.25);
+    border-radius: var(--radius-sm);
+    padding: 12px;
+    font-size: 0.83rem;
+    color: var(--text);
+    margin-bottom: 8px;
+    display: flex;
+    gap: 8px;
+  }
+
+  /* LOADING SPINNER */
+  .spinner {
+    width: 18px; height: 18px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    flex-shrink: 0;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<div class="notif-wrap" id="notifWrap"></div>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="logo">
+    <div class="logo-icon">🤖</div>
+    AI Társ
+  </div>
+  <div class="header-status">
+    <span class="status-dot" id="apiStatusDot"></span>
+    <span id="apiStatusText">Nincs kulcs</span>
+    <span style="color:var(--text3)">|</span>
+    <span id="activeKeyLabel">–</span>
+    <span style="color:var(--text3)">|</span>
+    <span id="headerModel" style="color:var(--accent2); font-size:0.78rem">–</span>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <div class="tab active" data-tab="chat" onclick="switchTab('chat')">💬 Beszélgetés</div>
+  <div class="tab" data-tab="keys" onclick="switchTab('keys')">🔑 API Kulcsok</div>
+  <div class="tab" data-tab="settings" onclick="switchTab('settings')">⚙️ Beállítások</div>
+  <div class="tab" data-tab="memory" onclick="switchTab('memory')">🧠 Memória</div>
+  <div class="tab" data-tab="stats" onclick="switchTab('stats')">📊 Statisztikák</div>
+  <div class="tab" data-tab="history" onclick="switchTab('history')">📁 Előzmények</div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- =============== SIDEBAR =============== -->
+  <div class="sidebar">
+
+    <!-- Személyiség -->
+    <div class="card">
+      <div class="card-title"><span>🎭</span> Személyiség</div>
+      <div class="personality-grid" id="personalityGrid"></div>
+    </div>
+
+    <!-- Aktív kulcs és rotáció -->
+    <div class="card">
+      <div class="card-title"><span>🔑</span> Kulcsrotáció</div>
+      <div style="font-size:0.8rem; color:var(--text2); margin-bottom:8px;">
+        Aktív: <span id="sideActiveKey" style="color:var(--accent2); font-weight:600">–</span>
+      </div>
+      <div class="key-rotation" id="keyRotationDots"></div>
+      <div style="margin-top:10px; font-size:0.75rem; color:var(--text3)">
+        🟢 Aktív &nbsp; 🟡 Használt &nbsp; 🔴 Hibás
+      </div>
+    </div>
+
+    <!-- Gyors beállítások -->
+    <div class="card">
+      <div class="card-title"><span>⚡</span> Gyors beállítások</div>
+      <div class="toggle-row">
+        <span class="toggle-label">🔊 Hangfelolvasás</span>
+        <label class="toggle"><input type="checkbox" id="quickTTS" onchange="saveSetting('tts',this.checked)" checked><span class="toggle-slider"></span></label>
+      </div>
+      <div class="toggle-row">
+        <span class="toggle-label">🎙️ Auto-mikrofon</span>
+        <label class="toggle"><input type="checkbox" id="quickVAD" onchange="saveSetting('vad',this.checked)"><span class="toggle-slider"></span></label>
+      </div>
+      <div class="toggle-row">
+        <span class="toggle-label">📝 Szöveges is</span>
+        <label class="toggle"><input type="checkbox" id="quickText" onchange="saveSetting('textInput',this.checked)" checked><span class="toggle-slider"></span></label>
+      </div>
+      <div class="toggle-row">
+        <span class="toggle-label">🧠 Hosszú memória</span>
+        <label class="toggle"><input type="checkbox" id="quickMem" onchange="saveSetting('longMem',this.checked)" checked><span class="toggle-slider"></span></label>
+      </div>
+      <div class="divider"></div>
+      <div class="form-group" style="margin-bottom:0">
+        <div class="form-label">Hangolvasás tempója</div>
+        <div class="slider-wrap">
+          <input type="range" class="slider" id="quickSpeed" min="0.5" max="2" step="0.1" value="1" oninput="updateSlider(this,'quickSpeedVal'); saveSetting('ttsRate',this.value)">
+          <span class="slider-val" id="quickSpeedVal">1.0x</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Jelenlegi téma -->
+    <div class="card">
+      <div class="card-title"><span>💡</span> Jelenlegi témák</div>
+      <div id="topicChips" style="min-height:30px;">
+        <span style="font-size:0.78rem; color:var(--text3)">Még nincs téma...</span>
+      </div>
+    </div>
+
+    <!-- Hangulat -->
+    <div class="card">
+      <div class="card-title"><span>❤️</span> Hangulat</div>
+      <div style="font-size:0.82rem; color:var(--text2); margin-bottom:8px;" id="moodLabel">Semleges</div>
+      <div class="mood-bar"><div class="mood-fill" id="moodFill" style="width:50%"></div></div>
+    </div>
+
+  </div>
+
+  <!-- =============== PANEL: CHAT =============== -->
+  <div class="panel active" id="panel-chat">
+    <div class="chat-wrap">
+
+      <!-- Avatar -->
+      <div class="chat-avatar-area">
+        <div class="ai-avatar" id="aiAvatar">
+          <span id="aiAvatarEmoji">🤖</span>
+        </div>
+        <div class="ai-status-text" id="aiStatusText">Várakozás...</div>
+        <div class="waveform" id="waveform">
+          <!-- Wave bars JS-ből -->
+        </div>
+      </div>
+
+      <!-- Messages -->
+      <div class="messages" id="messages">
+        <div class="msg ai">
+          <div class="msg-avatar">🤖</div>
+          <div>
+            <div class="msg-bubble" id="welcomeMsg">Szia! Én vagyok az AI Társ. Válassz személyiséget a bal oldalsávban, add meg a Groq API kulcsaid, és kezdjük el a beszélgetést! 🎉</div>
+            <div class="msg-time">Most</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Input -->
+      <div class="input-area">
+        <!-- Hang gombok -->
+        <div class="voice-controls">
+          <button class="btn btn-secondary btn-icon" id="stopBtn" onclick="stopSpeaking()" title="Hang leállítása" disabled>⏹️</button>
+          <button class="mic-btn" id="micBtn" onclick="toggleRecording()" title="Mikrofon">🎙️</button>
+          <button class="btn btn-secondary btn-icon" onclick="clearChat()" title="Üzenetek törlése">🗑️</button>
+        </div>
+        <div class="voice-hint" id="voiceHint">Kattints a mikrofonra és beszélj magyarul – Groq Whisper feldolgozza a hangod</div>
+
+        <!-- Szöveg input (ha bekapcsolt) -->
+        <div class="input-row" id="textInputArea">
+          <textarea class="text-input" id="userText" rows="1" placeholder="Írj ide, ha nem szeretnél hangot használni..." onkeydown="handleTextKey(event)"></textarea>
+          <button class="btn btn-primary" onclick="sendText()">Küldés →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =============== PANEL: API KULCSOK =============== -->
+  <div class="panel" id="panel-keys">
+    <div class="content">
+      <div class="section-title">🔑 Groq API Kulcsok</div>
+      <div class="section-sub">Adj meg akár 10 Groq API kulcsot. A rendszer automatikusan rotál közöttük, ha az egyik eléri a limit-et.</div>
+
+      <div class="card">
+        <div class="card-title"><span>📊</span> Kulcshasználat összesítő</div>
+        <div id="allKeyProgress"></div>
+        <div style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap;">
+          <div class="badge badge-green">🟢 Aktív kulcsok: <span id="activeKeyCount">0</span></div>
+          <div class="badge badge-yellow">🟡 Limitált: <span id="limitedKeyCount">0</span></div>
+          <div class="badge badge-red">🔴 Hibás: <span id="errorKeyCount">0</span></div>
+          <div class="badge badge-accent">📨 Összes kérés: <span id="totalRequests">0</span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><span>🗝️</span> API Kulcsok kezelése</div>
+        <div id="apiKeyList"></div>
+        <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap;">
+          <button class="btn btn-primary" onclick="validateAllKeys()">✓ Összes ellenőrzése</button>
+          <button class="btn btn-secondary" onclick="clearAllKeys()">🗑️ Összes törlése</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><span>⚙️</span> Rotációs beállítások</div>
+        <div class="form-group">
+          <div class="form-label">Rotációs stratégia</div>
+          <select class="form-select" id="rotationStrategy" onchange="saveSetting('rotationStrategy',this.value)">
+            <option value="roundrobin">Körbe-körbe (Round Robin)</option>
+            <option value="random">Véletlenszerű</option>
+            <option value="least_used">Legkevésbé használt</option>
+            <option value="failover">Csak hiba esetén vált</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <div class="form-label">Átváltás korlát (kérések/perc)</div>
+          <div class="slider-wrap">
+            <input type="range" class="slider" id="rotationLimit" min="1" max="60" value="20" oninput="updateSlider(this,'rotationLimitVal'); saveSetting('rotationLimit',this.value)">
+            <span class="slider-val" id="rotationLimitVal">20 rpm</span>
+          </div>
+        </div>
+        <div class="toggle-row">
+          <span class="toggle-label">Automatikus rotáció 429 hibánál</span>
+          <label class="toggle"><input type="checkbox" id="autoRotate" onchange="saveSetting('autoRotate',this.checked)" checked><span class="toggle-slider"></span></label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =============== PANEL: BEÁLLÍTÁSOK =============== -->
+  <div class="panel" id="panel-settings">
+    <div class="content">
+      <div class="section-title">⚙️ Rendszerbeállítások</div>
+
+      <div class="card">
+        <div class="card-title"><span>🤖</span> AI Modell</div>
+        <div class="form-group">
+          <div class="form-label">Groq modell</div>
+          <select class="form-select" id="modelSelect" onchange="saveSetting('model',this.value); updateHeaderModel()">
+            <optgroup label="Gyors modellek">
+              <option value="llama-3.3-70b-versatile">Llama 3.3 70B Versatile (ajánlott)</option>
+              <option value="llama-3.1-8b-instant">Llama 3.1 8B Instant (leggyorsabb)</option>
+              <option value="llama3-70b-8192">Llama 3 70B</option>
+              <option value="llama3-8b-8192">Llama 3 8B</option>
+              <option value="mixtral-8x7b-32768">Mixtral 8x7B 32K</option>
+              <option value="gemma2-9b-it">Gemma 2 9B</option>
+              <option value="gemma-7b-it">Gemma 7B</option>
+            </optgroup>
+            <optgroup label="Whisper (STT)">
+              <option value="whisper-large-v3">Whisper Large V3 (legjobb)</option>
+              <option value="whisper-large-v3-turbo">Whisper Large V3 Turbo</option>
+              <option value="distil-whisper-large-v3-en">Distil Whisper (angol)</option>
+            </optgroup>
+          </select>
+        </div>
+        <div class="form-group">
+          <div class="form-label">STT (Hangfelismerés) modell</div>
+          <select class="form-select" id="sttModel" onchange="saveSetting('sttModel',this.value)">
+            <option value="whisper-large-v3">Groq Whisper Large V3 (ajánlott)</option>
+            <option value="whisper-large-v3-turbo">Groq Whisper V3 Turbo (gyorsabb)</option>
+            <option value="distil-whisper-large-v3-en">Distil Whisper (csak angol)</option>
+            <option value="browser">Böngésző Web Speech API (offline)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <div class="form-label">Kontextus méret (fordulók)</div>
+          <div class="slider-wrap">
+            <input type="range" class="slider" id="contextSize" min="2" max="30" value="10" oninput="updateSlider(this,'contextSizeVal'); saveSetting('contextSize',this.value)">
+            <span class="slider-val" id="contextSizeVal">10</span>
+          </div>
+        </div>
+        <div class="form-group">
+          <div class="form-label">Hőmérséklet (kreativitás)</div>
+          <div class="slider-wrap">
+            <input type="range" class="slider" id="temperature" min="0" max="2" step="0.1" value="0.8" oninput="updateSlider(this,'temperatureVal'); saveSetting('temperature',this.value)">
+            <span class="slider-val" id="temperatureVal">0.8</span>
+          </div>
+        </div>
+        <div class="form-group">
+          <div class="form-label">Max tokenek / válasz</div>
+          <div class="slider-wrap">
+            <input type="range" class="slider" id="maxTokens" min="50" max="2000" step="50" value="500" oninput="updateSlider(this,'maxTokensVal'); saveSetting('maxTokens',this.value)">
+            <span class="slider-val" id="maxTokensVal">500</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><span>🔊</span> Hangfelolvasás (TTS)</div>
+        <div class="form-group">
+          <div class="form-label">TTS motor</div>
+          <select class="form-select" id="ttsEngine" onchange="saveSetting('ttsEngine',this.value); refreshTTSVoices()">
+            <option value="browser">Böngésző TTS (ingyenes, offline)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <div class="form-label">Hang (Voice)</div>
+          <select class="form-select" id="ttsVoice" onchange="saveSetting('ttsVoice',this.value)">
+            <option value="">Alapértelmezett</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <div class="form-label">Sebesség</div>
+          <div class="slider-wrap">
+            <input type="range" class="slider" id="ttsRate" min="0.5" max="2" step="0.05" value="1" oninput="updateSlider(this,'ttsRateVal'); saveSetting('ttsRate',this.value); document.getElementById('quickSpeed').value=this.value; updateSlider(document.getElementById('quickSpeed'),'quickSpeedVal')">
+            <span class="slider-val" id="ttsRateVal">1.00x</span>
+          </div>
+        </div>
+        <div class="form-group">
+          <div class="form-label">Hangmagasság</div>
+          <div class="slider-wrap">
+            <input type="range" class="slider" id="ttsPitch" min="0.5" max="2" step="0.05" value="1" oninput="updateSlider(this,'ttsPitchVal'); saveSetting('ttsPitch',this.value)">
+            <span class="slider-val" id="ttsPitchVal">1.00</span>
+          </div>
+        </div>
+        <div class="form-group">
+          <div class="form-label">Hangerő</div>
+          <div class="slider-wrap">
+            <input type="range" class="slider" id="ttsVolume" min="0" max="1" step="0.05" value="1" oninput="updateSlider(this,'ttsVolumeVal'); saveSetting('ttsVolume',this.value)">
+            <span class="slider-val" id="ttsVolumeVal">1.00</span>
+          </div>
+        </div>
+        <button class="btn btn-secondary" style="margin-top:6px" onclick="testTTS()">▶ Hang tesztelése</button>
+      </div>
+
+
+            <div class="card">
+        <div class="card-title"><span>🔊</span> ElevenLabs TTS Beállítások</div>
+        <div class="form-group">
+          <div class="form-label">ElevenLabs API Kulcs</div>
+          <input type="password" class="form-input" id="elevenlabsKeyInput" 
+                 placeholder="sk_..." 
+                 oninput="saveElevenLabsKey(this.value)">
+        </div>
+        <div class="form-group">
+          <div class="form-label">Hang kiválasztása</div>
+          <select class="form-select" id="elevenlabsVoice" onchange="selectElevenLabsVoice(this.value)">
+            <option value="pFZP5JQG7iQjIQuC4Bku">Lili (magyar női) - AJÁNLOTT</option>
+            <option value="ThT5KcBeYPX3keUQqHPh">Dorina (magyar női)</option>
+            <option value="pqHfZKP75CvOlQylNhV4">Máté (magyar férfi)</option>
+            <option value="21m00Tcm4TlvDq8ikWAM">Rachel (amerikai női)</option>
+            <option value="AZnzlk1XvdvUeBnXmlld">Domi (magyar férfi)</option>
+          </select>
+        </div>
+        <button class="btn btn-secondary" style="margin-top:6px" onclick="testTTS()">▶ Hang tesztelése</button>
+      </div>
+
+
+      <div class="card">
+        <div class="card-title"><span>🎙️</span> Mikrofon és STT</div>
+        <div class="form-group">
+          <div class="form-label">Mikrofon érzékenysége</div>
+          <div class="slider-wrap">
+            <input type="range" class="slider" id="micSensitivity" min="0.001" max="0.05" step="0.001" value="0.01" oninput="updateSlider(this,'micSensVal'); saveSetting('micSens',this.value)">
+            <span class="slider-val" id="micSensVal">0.010</span>
+          </div>
+        </div>
+        <div class="form-group">
+          <div class="form-label">Csend küszöb (mp)</div>
+          <div class="slider-wrap">
+            <input type="range" class="slider" id="silenceThresh" min="0.5" max="4" step="0.1" value="1.5" oninput="updateSlider(this,'silenceVal'); saveSetting('silenceThresh',this.value)">
+            <span class="slider-val" id="silenceVal">1.5s</span>
+          </div>
+        </div>
+        <div class="toggle-row">
+          <span class="toggle-label">Zajszűrés</span>
+          <label class="toggle"><input type="checkbox" id="noiseSuppression" onchange="saveSetting('noiseSupp',this.checked)" checked><span class="toggle-slider"></span></label>
+        </div>
+        <div class="toggle-row">
+          <span class="toggle-label">Echo törlés</span>
+          <label class="toggle"><input type="checkbox" id="echoCancellation" onchange="saveSetting('echoCancel',this.checked)" checked><span class="toggle-slider"></span></label>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><span>💬</span> Rendszer prompt testreszabása</div>
+        <div class="form-group">
+          <div class="form-label">Egyedi rendszer prompt (elhagyható)</div>
+          <textarea class="form-textarea" id="customPrompt" rows="5" placeholder="Ha üresen hagyod, a kiválasztott személyiség promptját használja..." onchange="saveSetting('customPrompt',this.value)"></textarea>
+        </div>
+        <div class="form-group">
+          <div class="form-label">Felhasználó neve (az AI megszólítja)</div>
+          <input type="text" class="form-input" id="userName" placeholder="pl. Ádám" oninput="saveSetting('userName',this.value)">
+        </div>
+        <div class="form-group">
+          <div class="form-label">Az AI neve</div>
+          <input type="text" class="form-input" id="aiName" placeholder="pl. Lili" oninput="saveSetting('aiName',this.value); updateAIName()">
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><span>🔒</span> Adatvédelem</div>
+        <div class="toggle-row">
+          <span class="toggle-label">Helyi mentés (localStorage)</span>
+          <label class="toggle"><input type="checkbox" id="localSave" onchange="saveSetting('localSave',this.checked)" checked><span class="toggle-slider"></span></label>
+        </div>
+        <div class="toggle-row">
+          <span class="toggle-label">Élő streaming válasz</span>
+          <label class="toggle"><input type="checkbox" id="streamingEnabled" onchange="saveSetting('streaming',this.checked)" checked><span class="toggle-slider"></span></label>
+        </div>
+        <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap;">
+          <button class="btn btn-danger" onclick="clearAllData()">🗑️ Összes adat törlése</button>
+          <button class="btn btn-secondary" onclick="exportData()">📤 Exportálás</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =============== PANEL: MEMÓRIA =============== -->
+  <div class="panel" id="panel-memory">
+    <div class="content">
+      <div class="section-title">🧠 Memória kezelő</div>
+      <div class="section-sub">Az AI itt tárolja, amit megjegyez rólad. Szerkesztheted vagy törölheted a bejegyzéseket.</div>
+
+      <div class="stats-grid" style="margin-bottom:16px">
+        <div class="stat-box">
+          <div class="stat-val" id="memSTMCount">0</div>
+          <div class="stat-label">Rövid távú (forduló)</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val" id="memLTMCount">0</div>
+          <div class="stat-label">Hosszú távú (tény)</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val" id="memTopicCount">0</div>
+          <div class="stat-label">Követett téma</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val" id="memGoalCount">0</div>
+          <div class="stat-label">Aktív cél</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><span>📌</span> Hosszú távú memória (személyes tények)</div>
+        <div id="ltmList">
+          <div style="color:var(--text3); font-size:0.82rem">Még nincs bejegyzés. Mesélj magadról, és az AI megjegyzi!</div>
+        </div>
+        <div style="margin-top:12px; display:flex; gap:8px;">
+          <input type="text" class="form-input" id="newMemInput" placeholder="Adj hozzá emléket kézzel...">
+          <button class="btn btn-primary" onclick="addMemoryManually()">+ Hozzáad</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><span>🎯</span> Célok és vállalások</div>
+        <div id="goalList">
+          <div style="color:var(--text3); font-size:0.82rem">Mesélj céljaidról, és az AI nyomon követi őket!</div>
+        </div>
+        <div style="margin-top:12px; display:flex; gap:8px;">
+          <input type="text" class="form-input" id="newGoalInput" placeholder="Új cél hozzáadása...">
+          <button class="btn btn-primary" onclick="addGoalManually()">+ Cél</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><span>💡</span> AI Betekintések</div>
+        <div id="insightList">
+          <div style="color:var(--text3); font-size:0.82rem">Folytatott több beszélgetés után az AI mintákat ismer fel...</div>
+        </div>
+        <button class="btn btn-secondary" style="margin-top:10px" onclick="generateInsights()">🔍 Betekintések generálása</button>
+      </div>
+
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <button class="btn btn-danger" onclick="clearMemory()">🗑️ Memória törlése</button>
+        <button class="btn btn-secondary" onclick="exportMemory()">📤 Exportálás</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =============== PANEL: STATISZTIKÁK =============== -->
+  <div class="panel" id="panel-stats">
+    <div class="content">
+      <div class="section-title">📊 Statisztikák és elemzések</div>
+
+      <div class="stats-grid">
+        <div class="stat-box">
+          <div class="stat-val" id="statTotalMsgs">0</div>
+          <div class="stat-label">Összes üzenet</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val" id="statTotalSessions">0</div>
+          <div class="stat-label">Beszélgetések</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val" id="statTotalTokens">0</div>
+          <div class="stat-label">Összes token</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val" id="statAvgResp">–</div>
+          <div class="stat-label">Átlagos válaszidő</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val" id="statTotalApiCalls">0</div>
+          <div class="stat-label">API hívások</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val" id="statMoodAvg">–</div>
+          <div class="stat-label">Átlagos hangulat</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><span>🔑</span> Kulcshasználat részletesen</div>
+        <div id="statsKeyDetail"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><span>⏱️</span> Válaszidők (utolsó 10)</div>
+        <div id="responseTimesChart" style="display:flex; align-items:flex-end; gap:5px; height:80px;"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><span>📈</span> Modellenként</div>
+        <div id="statsByModel"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><span>🏷️</span> Leggyakoribb témák</div>
+        <div id="topTopics" style="display:flex; flex-wrap:wrap;"></div>
+      </div>
+
+      <button class="btn btn-secondary" onclick="resetStats()">🔄 Statisztikák nullázása</button>
+    </div>
+  </div>
+
+  <!-- =============== PANEL: ELŐZMÉNYEK =============== -->
+  <div class="panel" id="panel-history">
+    <div class="content">
+      <div class="section-title">📁 Korábbi beszélgetések</div>
+      <div class="section-sub">Böngészd és töltsd vissza a korábbi társalgásokat.</div>
+
+      <div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;">
+        <input type="text" class="form-input" id="historySearch" style="flex:1" placeholder="Keresés az előzményekben..." oninput="filterHistory()">
+        <button class="btn btn-danger" onclick="clearHistory()">🗑️ Összes törlése</button>
+      </div>
+
+      <div id="historyList">
+        <div style="color:var(--text3); font-size:0.82rem; text-align:center; padding:40px">Még nincs mentett előzmény</div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<script>
+// =====================================================================
+// STATE
+// =====================================================================
+let state = {
+  apiKeys: Array(10).fill(''),         // 10 API kulcs
+  keyStats: Array(10).fill(null).map(() => ({ requests: 0, errors: 0, tokens: 0, lastUsed: null, status: 'empty' })),
+  activeKeyIndex: 0,
+  messages: [],         // { role, content, time }
+  longTermMemory: [],   // { text, time, type }
+  goals: [],            // { text, time, done }
+  chatHistory: [],      // mentett sessionök
+  stats: {
+    totalMsgs: 0,
+    totalSessions: 0,
+    totalTokens: 0,
+    totalApiCalls: 0,
+    responseTimes: [],
+    moodHistory: [],
+    topicFreq: {},
+    modelStats: {}
+  },
+  settings: {
+    model: 'llama-3.3-70b-versatile',
+    sttModel: 'whisper-large-v3',
+    tts: true,
+    vad: false,
+    textInput: true,
+    longMem: true,
+    ttsRate: 1,
+    ttsPitch: 1,
+    ttsVolume: 1,
+    ttsVoice: '',
+    ttsEngine: 'browser',
+    contextSize: 10,
+    temperature: 0.8,
+    maxTokens: 500,
+    rotationStrategy: 'roundrobin',
+    rotationLimit: 20,
+    autoRotate: true,
+    micSens: 0.01,
+    silenceThresh: 1.5,
+    noiseSupp: true,
+    echoCancel: true,
+    customPrompt: '',
+    userName: '',
+    aiName: '',
+    localSave: true,
+    streaming: true,
+    personality: 'barát'
+  },
+  currentTopics: [],
+  currentMood: 50,
+  isRecording: false,
+  isSpeaking: false,
+  isProcessing: false,
+  mediaRecorder: null,
+  audioChunks: [],
+  silenceTimer: null,
+  speechSynth: window.speechSynthesis,
+  currentUtterance: null,
+  waveInterval: null,
+  keyRotationTimers: Array(10).fill(0),  // requests per minute
+  minuteTimer: null
+};
+
+const PERSONALITIES = [
+  { id:'barát', name:'Barát', emoji:'😊', desc:'Lazább, vicces', color:'#7c6ff7',
+    prompt:'Egy közvetlen, vidám és szórakoztató barát vagy. Természetesen, informálisan beszélsz, slenget használhatsz, viccelődhetsz. Rövid, energikus válaszokat adsz. Érdeklődsz a felhasználó élete iránt.' },
+  { id:'asszisztens', name:'Asszisztens', emoji:'💼', desc:'Professzionális', color:'#60a5fa',
+    prompt:'Professzionális, segítőkész asszisztens vagy. Tárgyilagos, informatív, precíz válaszokat adsz. Feladatfókuszú vagy, de barátságos.' },
+  { id:'tanár', name:'Tanár', emoji:'📚', desc:'Didaktikus, türelmes', color:'#34d399',
+    prompt:'Türelmes, magyarázó tanár vagy. Didaktikus stílusban magyarázol, példákat adsz. Szükség esetén kijavítod a hibákat, de bátorítóan. Magyar nyelven tanítasz elsősorban.' },
+  { id:'terapeuta', name:'Terapeuta', emoji:'💙', desc:'Empatikus hallgató', color:'#f472b6',
+    prompt:'Empatikus, aktívan hallgató támogató vagy. Nyitott kérdéseket teszel fel. Validálod az érzelmeket. Nem adsz közvetlen tanácsot, hanem segítesz a felhasználónak megtalálni a saját válaszait.' },
+  { id:'mesélő', name:'Mesélő', emoji:'📖', desc:'Történetek, kalandok', color:'#fbbf24',
+    prompt:'Kreatív mesélő vagy. Történeteket mesélsz, kalandokat szövesz. Élénk, képgazdag nyelvet használsz. Bevonod a felhasználót a történetbe.' },
+  { id:'coach', name:'Coach', emoji:'🏆', desc:'Célok, motiváció', color:'#fb923c',
+    prompt:'Motiváló life coach vagy. Segítesz célokat kitűzni és elérni. Pozitív, energikus, eredményorientált. Konkrét cselekvési lépéseket javasolsz.' }
+];
+
+// =====================================================================
+// INIT
+// =====================================================================
+function init() {
+  loadFromStorage();
+  renderPersonalities();
+  renderApiKeys();
+  refreshTTSVoices();
+  updateAllUI();
+  startMinuteTimer();
+  renderWaveform();
+  updateAIName();
+  updateHeaderModel();
+
+  // Szöveg input autoresize
+  const ta = document.getElementById('userText');
+  ta.addEventListener('input', () => {
+    ta.style.height = 'auto';
+    ta.style.height = Math.min(ta.scrollHeight, 120) + 'px';
+  });
+
+  // TTS hang betöltés
+  window.speechSynthesis.onvoiceschanged = refreshTTSVoices;
+
+  notify('info', '👋 AI Társ betöltve. Add meg a Groq API kulcsaid a "API Kulcsok" fülön!');
+}
+
+// =====================================================================
+// STORAGE
+// =====================================================================
+
+
+function saveElevenLabsKey(value) {
+  const key = value.trim();
+  if (key) {
+    localStorage.setItem('elevenlabs_key', key);
+    console.log('ElevenLabs kulcs mentve:', key.substring(0, 8) + '...');
+    notify('success', '✓ ElevenLabs kulcs elmentve!');
+    loadElevenLabsVoices(key);
+  } else {
+    localStorage.removeItem('elevenlabs_key');
+    notify('warning', 'ElevenLabs kulcs törölve');
+  }
+}
+
+async function loadElevenLabsVoices(key) {
+  const sel = document.getElementById('elevenlabsVoice');
+  if (!sel) return;
+
+  sel.innerHTML = '<option value="">⏳ Hangok betöltése...</option>';
+
+  try {
+    const res = await fetch('https://api.elevenlabs.io/v1/voices', {
+      headers: {
+        'xi-api-key': key
+      }
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      sel.innerHTML = '<option value="">❌ Hiba a hangok betöltésekor</option>';
+      notify('error', 'ElevenLabs API hiba: ' + res.status + ' – ellenőrizd a kulcsot!');
+      console.error('ElevenLabs voices hiba:', errText);
+      return;
+    }
+
+    const data = await res.json();
+    const voices = data.voices || [];
+
+    if (voices.length === 0) {
+      sel.innerHTML = '<option value="">⚠️ Nincs hang a fiókban</option>';
+      notify('warning', 'Nincs elérhető hang az ElevenLabs fiókban');
+      return;
+    }
+
+    const savedVoice = state.settings.elevenlabsVoice || '';
+    sel.innerHTML = voices.map(v =>
+      `<option value="${escAtt(v.voice_id)}" ${v.voice_id === savedVoice ? 'selected' : ''}>
+        ${escHtml(v.name)} (${escHtml(v.labels?.language || v.labels?.accent || 'ismeretlen')})
+      </option>`
+    ).join('');
+
+    if (!savedVoice && voices.length > 0) {
+      state.settings.elevenlabsVoice = voices[0].voice_id;
+      saveToStorage();
+    }
+
+    notify('success', `✓ ${voices.length} hang betöltve az ElevenLabs fiókból!`);
+    console.log('ElevenLabs hangok:', voices.map(v => v.name + ' – ' + v.voice_id));
+
+  } catch(e) {
+    sel.innerHTML = '<option value="">❌ Hálózati hiba</option>';
+    notify('error', 'ElevenLabs hangok betöltési hiba: ' + e.message);
+    console.error('loadElevenLabsVoices hiba:', e);
+  }
+}
+
+
+function saveToStorage() {
+  if (!state.settings.localSave) return;
+  try {
+    localStorage.setItem('aitars_keys', JSON.stringify(state.apiKeys));
+    localStorage.setItem('aitars_keystats', JSON.stringify(state.keyStats));
+    localStorage.setItem('aitars_settings', JSON.stringify(state.settings));
+    localStorage.setItem('aitars_ltm', JSON.stringify(state.longTermMemory));
+    localStorage.setItem('aitars_goals', JSON.stringify(state.goals));
+    localStorage.setItem('aitars_stats', JSON.stringify(state.stats));
+    localStorage.setItem('aitars_history', JSON.stringify(state.chatHistory));
+  } catch(e) { console.warn('Storage hiba:', e); }
+}
+
+function loadFromStorage() {
+  try {
+    const keys = localStorage.getItem('aitars_keys');
+    if (keys) state.apiKeys = JSON.parse(keys);
+    const ks = localStorage.getItem('aitars_keystats');
+    if (ks) state.keyStats = JSON.parse(ks);
+    const set = localStorage.getItem('aitars_settings');
+    if (set) state.settings = { ...state.settings, ...JSON.parse(set) };
+    const ltm = localStorage.getItem('aitars_ltm');
+    if (ltm) state.longTermMemory = JSON.parse(ltm);
+    const goals = localStorage.getItem('aitars_goals');
+    if (goals) state.goals = JSON.parse(goals);
+    const stats = localStorage.getItem('aitars_stats');
+    if (stats) state.stats = { ...state.stats, ...JSON.parse(stats) };
+    const hist = localStorage.getItem('aitars_history');
+    if (hist) state.chatHistory = JSON.parse(hist);
+  } catch(e) { console.warn('Betöltési hiba:', e); }
+  applySettingsToUI();
+}
+
+function applySettingsToUI() {
+  const s = state.settings;
+  setVal('modelSelect', s.model);
+  setVal('sttModel', s.sttModel);
+  setVal('rotationStrategy', s.rotationStrategy);
+  setVal('ttsEngine', s.ttsEngine);
+  setVal('customPrompt', s.customPrompt || '');
+  setVal('userName', s.userName || '');
+  setVal('aiName', s.aiName || '');
+
+  const savedElevenLabsKey = localStorage.getItem('elevenlabs_key') || '';
+  setVal('elevenlabsKeyInput', savedElevenLabsKey);
+  setVal('elevenlabsVoice', s.elevenlabsVoice || '');
+
+  setCheck('quickTTS', s.tts);
+  setCheck('quickVAD', s.vad);
+  setCheck('quickText', s.textInput);
+  setCheck('quickMem', s.longMem);
+  setCheck('autoRotate', s.autoRotate !== false);
+  setCheck('noiseSuppression', s.noiseSupp !== false);
+  setCheck('echoCancellation', s.echoCancel !== false);
+  setCheck('localSave', s.localSave !== false);
+  setCheck('streamingEnabled', s.streaming !== false);
+
+  setSlider('quickSpeed', s.ttsRate, 'quickSpeedVal', v => v+'x');
+  setSlider('ttsRate', s.ttsRate, 'ttsRateVal', v => parseFloat(v).toFixed(2)+'x');
+  setSlider('ttsPitch', s.ttsPitch, 'ttsPitchVal', v => parseFloat(v).toFixed(2));
+  setSlider('ttsVolume', s.ttsVolume, 'ttsVolumeVal', v => parseFloat(v).toFixed(2));
+  setSlider('contextSize', s.contextSize, 'contextSizeVal', v => v);
+  setSlider('temperature', s.temperature, 'temperatureVal', v => v);
+  setSlider('maxTokens', s.maxTokens, 'maxTokensVal', v => v);
+  setSlider('rotationLimit', s.rotationLimit, 'rotationLimitVal', v => v+' rpm');
+  setSlider('micSensitivity', s.micSens, 'micSensVal', v => parseFloat(v).toFixed(3));
+  setSlider('silenceThresh', s.silenceThresh, 'silenceVal', v => v+'s');
+
+  document.getElementById('textInputArea').style.display = s.textInput !== false ? 'flex' : 'none';
+
+  if (savedElevenLabsKey) {
+    console.log('Mentett ElevenLabs kulcs találva, hangok betöltése...');
+    setTimeout(() => loadElevenLabsVoices(savedElevenLabsKey), 500);
+  }
+}
+
+function setVal(id, v) { const el = document.getElementById(id); if (el) el.value = v || ''; }
+function setCheck(id, v) { const el = document.getElementById(id); if (el) el.checked = !!v; }
+function setSlider(id, v, valId, fmt) {
+  const el = document.getElementById(id);
+  const vEl = document.getElementById(valId);
+  if (el) el.value = v;
+  if (vEl) vEl.textContent = fmt ? fmt(v) : v;
+}
+
+function saveSetting(key, value) {
+  state.settings[key] = value;
+  saveToStorage();
+
+  if (key === 'textInput') {
+    document.getElementById('textInputArea').style.display = value ? 'flex' : 'none';
+  }
+
+  if (key === 'ttsRate') {
+    setSlider('quickSpeed', value, 'quickSpeedVal', v => parseFloat(v).toFixed(1)+'x');
+    setSlider('ttsRate', value, 'ttsRateVal', v => parseFloat(v).toFixed(2)+'x');
+  }
+
+  if (key === 'elevenlabsVoice') {
+    state.settings.elevenlabsVoice = value;
+    console.log('ElevenLabs hang kiválasztva:', value);
+    notify('info', '🎙️ Hang kiválasztva, teszteléshez kattints a "Hang tesztelése" gombra');
+    saveToStorage();
+  }
+}
+
+function selectElevenLabsVoice(voiceId) {
+  state.settings.elevenlabsVoice = voiceId;
+  saveToStorage();
+  console.log('Kiválasztott ElevenLabs hang ID:', voiceId);
+  notify('info', '🎙️ Hang kiválasztva – teszteld a "Hang tesztelése" gombbal!');
+}
+
+// =====================================================================
+// TABS
+// =====================================================================
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+  document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === 'panel-'+tab));
+  if (tab === 'stats') updateStatsPanel();
+  if (tab === 'memory') updateMemoryPanel();
+  if (tab === 'history') renderHistory();
+  if (tab === 'keys') updateKeyProgressBars();
+}
+
+// =====================================================================
+// PERSONALITIES
+// =====================================================================
+function renderPersonalities() {
+  const grid = document.getElementById('personalityGrid');
+  grid.innerHTML = PERSONALITIES.map(p => `
+    <div class="personality-card ${state.settings.personality === p.id ? 'selected' : ''}"
+         onclick="selectPersonality('${p.id}')" title="${p.desc}">
+      <span class="personality-emoji">${p.emoji}</span>
+      <div class="personality-name">${p.name}</div>
+      <div class="personality-desc">${p.desc}</div>
+    </div>
+  `).join('');
+  updateAvatarForPersonality();
+}
+
+function selectPersonality(id) {
+  state.settings.personality = id;
+  saveToStorage();
+  renderPersonalities();
+  const p = PERSONALITIES.find(x => x.id === id);
+  if (p) {
+    notify('info', `${p.emoji} Személyiség: ${p.name}`);
+    updateAvatarForPersonality();
+  }
+}
+
+function updateAvatarForPersonality() {
+  const p = PERSONALITIES.find(x => x.id === state.settings.personality);
+  if (p) document.getElementById('aiAvatarEmoji').textContent = p.emoji;
+}
+
+// =====================================================================
+// API KEYS
+// =====================================================================
+function renderApiKeys() {
+  const list = document.getElementById('apiKeyList');
+  list.innerHTML = state.apiKeys.map((key, i) => {
+    const ks = state.keyStats[i];
+    const isActive = i === state.activeKeyIndex && key;
+    const statusColor = !key ? 'var(--text3)' : ks.status === 'ok' ? 'var(--green)' : ks.status === 'error' ? 'var(--red)' : ks.status === 'limited' ? 'var(--yellow)' : 'var(--text3)';
+    return `
+    <div class="api-key-item" id="keyItem${i}">
+      <div class="api-key-badge">${i+1}</div>
+      <div class="api-key-input-wrap">
+        <input type="password" value="${key}" placeholder="gsk_..." 
+               oninput="updateKey(${i}, this.value)" 
+               onfocus="this.type='text'" 
+               onblur="this.type='password'"
+               id="keyInput${i}">
+      </div>
+      <span class="key-usage-mini">${ks.requests} kérés</span>
+      <div class="api-key-status" style="background:${statusColor}"></div>
+      ${isActive ? '<span class="api-key-active-indicator">✓ Aktív</span>' : ''}
+      <button class="btn btn-secondary" style="padding:4px 8px; font-size:0.75rem" onclick="validateKey(${i})">✓</button>
+    </div>`;
+  }).join('');
+  updateKeyRotationDots();
+  updateKeyCountBadges();
+}
+
+function updateKey(i, val) {
+  state.apiKeys[i] = val.trim();
+  state.keyStats[i].status = val.trim() ? 'unknown' : 'empty';
+  saveToStorage();
+  updateKeyRotationDots();
+  updateKeyCountBadges();
+  updateApiStatus();
+}
+
+function updateKeyRotationDots() {
+  const dots = document.getElementById('keyRotationDots');
+  dots.innerHTML = state.apiKeys.map((k, i) => {
+    const ks = state.keyStats[i];
+    let cls = 'key-dot';
+    if (!k) cls += '';
+    else if (i === state.activeKeyIndex) cls += ' active';
+    else if (ks.status === 'error' || ks.status === 'limited') cls += ' exhausted';
+    else if (ks.requests > 0) cls += ' used';
+    else cls += ' has-key';
+    return `<div class="${cls}" title="Kulcs ${i+1}: ${k ? (ks.status || 'ismeretlen') : 'üres'}"></div>`;
+  }).join('');
+
+  document.getElementById('sideActiveKey').textContent = state.apiKeys[state.activeKeyIndex]
+    ? `#${state.activeKeyIndex+1} (${state.keyStats[state.activeKeyIndex].requests} kérés)`
+    : 'Nincs kulcs';
+}
+
+function updateKeyCountBadges() {
+  let active=0, limited=0, err=0;
+  state.apiKeys.forEach((k,i) => {
+    if (!k) return;
+    const s = state.keyStats[i].status;
+    if (s === 'ok') active++;
+    else if (s === 'limited') limited++;
+    else if (s === 'error') err++;
+  });
+  setTxt('activeKeyCount', active);
+  setTxt('limitedKeyCount', limited);
+  setTxt('errorKeyCount', err);
+  setTxt('totalRequests', state.stats.totalApiCalls);
+}
+
+function updateKeyProgressBars() {
+  const el = document.getElementById('allKeyProgress');
+  el.innerHTML = state.apiKeys.map((k,i) => {
+    if (!k) return `<div class="progress-wrap"><div class="progress-label-row"><span style="color:var(--text3)">Kulcs #${i+1} – üres</span></div></div>`;
+    const ks = state.keyStats[i];
+    const maxR = parseInt(state.settings.rotationLimit) || 20;
+    const pct = Math.min(100, (ks.requests % maxR) / maxR * 100);
+    const cls = pct > 80 ? 'danger' : pct > 50 ? 'warning' : '';
+    const statusIcon = ks.status === 'ok' ? '🟢' : ks.status === 'error' ? '🔴' : ks.status === 'limited' ? '🟡' : '⚪';
+    return `
+    <div class="progress-wrap">
+      <div class="progress-label-row">
+        <span>${statusIcon} Kulcs #${i+1} ${i===state.activeKeyIndex?'(aktív)':''}</span>
+        <span>${ks.requests} kérés / ${ks.tokens} token</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill ${cls}" style="width:${pct}%"></div></div>
+    </div>`;
+  }).join('');
+}
+
+async function validateKey(i) {
+  const key = state.apiKeys[i];
+  if (!key) { notify('warning', `Kulcs #${i+1} üres`); return; }
+  notify('info', `Kulcs #${i+1} ellenőrzése...`);
+  try {
+    const res = await fetch('https://api.groq.com/openai/v1/models', {
+      headers: { 'Authorization': 'Bearer ' + key }
+    });
+    if (res.ok) {
+      state.keyStats[i].status = 'ok';
+      notify('success', `✓ Kulcs #${i+1} érvényes!`);
+    } else if (res.status === 401) {
+      state.keyStats[i].status = 'error';
+      notify('error', `✗ Kulcs #${i+1} érvénytelen (401)`);
+    } else {
+      state.keyStats[i].status = 'error';
+      notify('error', `✗ Kulcs #${i+1} hiba: ${res.status}`);
+    }
+  } catch(e) {
+    state.keyStats[i].status = 'error';
+    notify('error', `Hálózati hiba: ${e.message}`);
+  }
+  renderApiKeys();
+  saveToStorage();
+}
+
+async function validateAllKeys() {
+  notify('info', '⏳ Összes kulcs ellenőrzése...');
+  for (let i = 0; i < 10; i++) {
+    if (state.apiKeys[i]) await validateKey(i);
+  }
+  notify('success', '✓ Ellenőrzés kész!');
+}
+
+function clearAllKeys() {
+  if (!confirm('Biztosan törlöd az összes API kulcsot?')) return;
+  state.apiKeys = Array(10).fill('');
+  state.keyStats = Array(10).fill(null).map(() => ({ requests:0, errors:0, tokens:0, lastUsed:null, status:'empty' }));
+  renderApiKeys();
+  saveToStorage();
+  updateApiStatus();
+}
+
+function getActiveKey() {
+  return state.apiKeys[state.activeKeyIndex] || '';
+}
+
+function rotateKey() {
+  const strategy = state.settings.rotationStrategy;
+  const validKeys = state.apiKeys.map((k,i) => ({k,i})).filter(x => x.k && state.keyStats[x.i].status !== 'error');
+  if (!validKeys.length) return false;
+
+  if (strategy === 'roundrobin') {
+    let next = (state.activeKeyIndex + 1) % 10;
+    for (let t = 0; t < 10; t++) {
+      if (state.apiKeys[next] && state.keyStats[next].status !== 'error') {
+        state.activeKeyIndex = next;
+        break;
+      }
+      next = (next + 1) % 10;
+    }
+  } else if (strategy === 'random') {
+    const pick = validKeys[Math.floor(Math.random() * validKeys.length)];
+    state.activeKeyIndex = pick.i;
+  } else if (strategy === 'least_used') {
+    const sorted = validKeys.sort((a,b) => state.keyStats[a.i].requests - state.keyStats[b.i].requests);
+    state.activeKeyIndex = sorted[0].i;
+  }
+  updateKeyRotationDots();
+  renderApiKeys();
+  return true;
+}
+
+function updateApiStatus() {
+  const hasKey = state.apiKeys.some(k => k);
+  const dot = document.getElementById('apiStatusDot');
+  const txt = document.getElementById('apiStatusText');
+  dot.className = 'status-dot ' + (hasKey ? 'active' : 'error');
+  txt.textContent = hasKey ? `${state.apiKeys.filter(k=>k).length} kulcs` : 'Nincs kulcs';
+  document.getElementById('activeKeyLabel').textContent = hasKey ? `#${state.activeKeyIndex+1}` : '–';
+}
+
+// =====================================================================
+// GROQ API CALL
+// =====================================================================
+async function callGroq(messages, stream = true) {
+  let key = getActiveKey();
+  if (!key) {
+    // Próbál találni bármilyen kulcsot
+    const firstValid = state.apiKeys.findIndex(k => k);
+    if (firstValid === -1) throw new Error('Nincs API kulcs megadva! Menj az "API Kulcsok" fülre.');
+    state.activeKeyIndex = firstValid;
+    key = state.apiKeys[firstValid];
+  }
+
+  const maxRetries = Math.min(state.apiKeys.filter(k=>k).length, 3);
+  let lastError = null;
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    key = getActiveKey();
+    if (!key) { rotateKey(); key = getActiveKey(); }
+
+    const t0 = Date.now();
+    try {
+      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + key
+        },
+        body: JSON.stringify({
+          model: state.settings.model,
+          messages,
+          max_tokens: parseInt(state.settings.maxTokens) || 500,
+          temperature: parseFloat(state.settings.temperature) || 0.8,
+          stream: stream && state.settings.streaming !== false
+        })
+      });
+
+      // Kulcs statisztika frissítés
+      state.keyStats[state.activeKeyIndex].requests++;
+      state.keyStats[state.activeKeyIndex].lastUsed = Date.now();
+      state.stats.totalApiCalls++;
+
+      if (res.status === 429) {
+        state.keyStats[state.activeKeyIndex].status = 'limited';
+        notify('warning', `Kulcs #${state.activeKeyIndex+1} limitált, váltás...`);
+        if (state.settings.autoRotate !== false) {
+          if (!rotateKey()) throw new Error('Minden kulcs limitált!');
+        }
+        lastError = new Error('Rate limited');
+        continue;
+      }
+
+      if (!res.ok) {
+        const errText = await res.text();
+        state.keyStats[state.activeKeyIndex].status = 'error';
+        state.keyStats[state.activeKeyIndex].errors++;
+        lastError = new Error(`API hiba ${res.status}: ${errText}`);
+        if (state.settings.autoRotate !== false) rotateKey();
+        continue;
+      }
+
+      // Sikeres kérés
+      state.keyStats[state.activeKeyIndex].status = 'ok';
+      const elapsed = Date.now() - t0;
+      state.stats.responseTimes.push(elapsed);
+      if (state.stats.responseTimes.length > 50) state.stats.responseTimes.shift();
+
+      updateKeyRotationDots();
+      updateKeyProgressBars();
+      renderApiKeys();
+      saveToStorage();
+
+      return res;
+
+    } catch(e) {
+      lastError = e;
+      if (attempt < maxRetries - 1) rotateKey();
+    }
+  }
+  throw lastError || new Error('Ismeretlen API hiba');
+}
+
+// =====================================================================
+// STT – GROQ WHISPER
+// =====================================================================
+async function transcribeAudio(audioBlob) {
+  const sttModel = state.settings.sttModel;
+
+  if (sttModel === 'browser') {
+    return null; // browser STT külön kezelt
+  }
+
+  const key = getActiveKey();
+  if (!key) throw new Error('Nincs API kulcs');
+
+  const formData = new FormData();
+  formData.append('file', audioBlob, 'audio.webm');
+  formData.append('model', sttModel === 'whisper-large-v3' ? 'whisper-large-v3' :
+                            sttModel === 'whisper-large-v3-turbo' ? 'whisper-large-v3-turbo' :
+                            'distil-whisper-large-v3-en');
+  formData.append('language', sttModel === 'distil-whisper-large-v3-en' ? 'en' : 'hu');
+  formData.append('response_format', 'json');
+
+  const t0 = Date.now();
+  const res = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + key },
+    body: formData
+  });
+
+  state.keyStats[state.activeKeyIndex].requests++;
+  state.stats.totalApiCalls++;
+
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`STT hiba: ${err}`);
+  }
+  const data = await res.json();
+  return data.text;
+}
+
+// =====================================================================
+// RECORDING
+// =====================================================================
+async function toggleRecording() {
+  if (state.isRecording) {
+    stopRecording();
+  } else {
+    await startRecording();
+  }
+}
+
+async function startRecording() {
+  if (state.isProcessing) return;
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        noiseSuppression: state.settings.noiseSupp !== false,
+        echoCancellation: state.settings.echoCancel !== false,
+        sampleRate: 16000
+      }
+    });
+
+    state.audioChunks = [];
+    state.mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' });
+    state.mediaRecorder.ondataavailable = e => { if (e.data.size > 0) state.audioChunks.push(e.data); };
+    state.mediaRecorder.onstop = handleRecordingStop;
+    state.mediaRecorder.start(100);
+
+    state.isRecording = true;
+    document.getElementById('micBtn').classList.add('recording');
+    document.getElementById('micBtn').textContent = '⏹';
+    setStatusText('🎙️ Figyelek... (kattints a leállításhoz)');
+    setAvatarState('listening');
+    startWaveAnimation();
+    document.getElementById('voiceHint').textContent = 'Felvétel folyamatban – kattints újra a leállításhoz';
+
+  } catch(e) {
+    notify('error', 'Mikrofon hozzáférés megtagadva: ' + e.message);
+  }
+}
+
+function stopRecording() {
+  if (!state.isRecording || !state.mediaRecorder) return;
+  state.isRecording = false;
+  state.mediaRecorder.stop();
+  state.mediaRecorder.stream.getTracks().forEach(t => t.stop());
+  document.getElementById('micBtn').classList.remove('recording');
+  document.getElementById('micBtn').textContent = '🎙️';
+  setStatusText('⏳ Feldolgozás...');
+  stopWaveAnimation();
+  document.getElementById('voiceHint').textContent = 'Whisper feldolgozza a hangot...';
+}
+
+async function handleRecordingStop() {
+  if (state.audioChunks.length === 0) return;
+  const audioBlob = new Blob(state.audioChunks, { type: 'audio/webm' });
+  state.isProcessing = true;
+  setAvatarState('');
+
+  try {
+    let transcript = '';
+
+    if (state.settings.sttModel === 'browser') {
+      // Böngésző STT fallback
+      transcript = await browserSTT();
+    } else {
+      transcript = await transcribeAudio(audioBlob);
+    }
+
+    if (transcript && transcript.trim()) {
+      document.getElementById('userText').value = transcript;
+      notify('success', `✓ Felismerve: "${transcript.substring(0,50)}${transcript.length>50?'...':''}"`);
+      await sendMessage(transcript);
+    } else {
+      notify('warning', 'Nem sikerült szöveget felismerni');
+      setStatusText('Várakozás...');
+    }
+  } catch(e) {
+    notify('error', 'STT hiba: ' + e.message);
+    setStatusText('Hiba történt');
+  }
+  state.isProcessing = false;
+  document.getElementById('voiceHint').textContent = 'Kattints a mikrofonra és beszélj magyarul – Groq Whisper feldolgozza a hangod';
+}
+
+function browserSTT() {
+  return new Promise((resolve, reject) => {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) { reject(new Error('Böngésző nem támogatja')); return; }
+    const r = new SR();
+    r.lang = 'hu-HU';
+    r.interimResults = false;
+    r.maxAlternatives = 1;
+    r.onresult = e => resolve(e.results[0][0].transcript);
+    r.onerror = e => reject(new Error(e.error));
+    r.start();
+  });
+}
+
+// =====================================================================
+// SEND MESSAGE
+// =====================================================================
+async function sendText() {
+  const ta = document.getElementById('userText');
+  const text = ta.value.trim();
+  if (!text) return;
+  ta.value = '';
+  ta.style.height = 'auto';
+  await sendMessage(text);
+}
+
+function handleTextKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendText();
+  }
+}
+
+async function sendMessage(text) {
+  if (!text) return;
+  if (!state.apiKeys.some(k => k)) {
+    notify('error', '⚠️ Add meg a Groq API kulcsot az "API Kulcsok" fülön!');
+    switchTab('keys');
+    return;
+  }
+
+  // UI: felhasználó üzenete
+  addMessage('user', text);
+  setStatusText('💭 Gondolkodom...');
+  setAvatarState('');
+  state.isProcessing = true;
+
+  // Kontextus összerakása
+  const systemPrompt = buildSystemPrompt();
+  const contextMsgs = buildContextMessages();
+  const apiMessages = [
+    { role: 'system', content: systemPrompt },
+    ...contextMsgs,
+    { role: 'user', content: text }
+  ];
+
+  // Gépelés jelzés
+  const typingId = addTypingIndicator();
+
+  try {
+    const res = await callGroq(apiMessages, true);
+    removeTypingIndicator(typingId);
+
+    let fullText = '';
+
+    if (state.settings.streaming !== false) {
+      // Streaming válasz
+      const msgEl = addMessage('ai', '', true);
+      const reader = res.body.getReader();
+      const dec = new TextDecoder();
+      setStatusText('💬 Válaszol...');
+      setAvatarState('speaking');
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const chunk = dec.decode(value, { stream: true });
+        const lines = chunk.split('\n').filter(l => l.startsWith('data: '));
+        for (const line of lines) {
+          const data = line.replace('data: ', '');
+          if (data === '[DONE]') continue;
+          try {
+            const json = JSON.parse(data);
+            const delta = json.choices?.[0]?.delta?.content || '';
+            if (delta) {
+              fullText += delta;
+              updateMessageBubble(msgEl, fullText, true);
+              // Token szám becslés
+              state.keyStats[state.activeKeyIndex].tokens += delta.length / 4;
+            }
+          } catch{}
+        }
+      }
+      updateMessageBubble(msgEl, fullText, false);
+
+    } else {
+      // Nem-streaming
+      const data = await res.json();
+      fullText = data.choices?.[0]?.message?.content || 'Hiba: üres válasz';
+      addMessage('ai', fullText);
+      const tokenUsage = data.usage?.total_tokens || 0;
+      state.keyStats[state.activeKeyIndex].tokens += tokenUsage;
+      state.stats.totalTokens += tokenUsage;
+    }
+
+    // Üzenet mentés
+    state.messages.push({ role: 'user', content: text, time: Date.now() });
+    state.messages.push({ role: 'assistant', content: fullText, time: Date.now() });
+    state.stats.totalMsgs += 2;
+
+    // Memória, témák, hangulat frissítése
+    analyzeMood(fullText + ' ' + text);
+    analyzeTopics(text + ' ' + fullText);
+    if (state.settings.longMem !== false) extractMemory(text, fullText);
+
+    // TTS
+    if (state.settings.tts !== false && fullText) {
+      await speakText(fullText);
+    }
+
+    setStatusText('Várakozás...');
+    setAvatarState('');
+    saveToStorage();
+
+  } catch(e) {
+    removeTypingIndicator(typingId);
+    addMessage('ai', `❌ Hiba: ${e.message}`);
+    notify('error', e.message);
+    setStatusText('Hiba történt');
+    setAvatarState('');
+  }
+
+  state.isProcessing = false;
+  updateAllUI();
+}
+
+// =====================================================================
+// PROMPT ÉPÍTÉS
+// =====================================================================
+function buildSystemPrompt() {
+  const p = PERSONALITIES.find(x => x.id === state.settings.personality) || PERSONALITIES[0];
+  const userName = state.settings.userName;
+  const aiName = state.settings.aiName;
+
+  let base = state.settings.customPrompt || p.prompt;
+  base = `${base}\n\nMINDIG MAGYARUL VÁLASZOLJ. Természetes, folyékony magyar nyelvet használj.`;
+
+  if (userName) base += `\nA felhasználó neve: ${userName}. Szólítsd nevén.`;
+  if (aiName) base += `\nAz te neved: ${aiName}.`;
+
+  // Hosszú távú memória beépítése
+  if (state.settings.longMem !== false && state.longTermMemory.length > 0) {
+    const memStr = state.longTermMemory.slice(-20).map(m => `- ${m.text}`).join('\n');
+    base += `\n\nAz alábbi információk ismertek a felhasználóról:\n${memStr}`;
+  }
+
+  // Célok
+  if (state.goals.length > 0) {
+    const activeGoals = state.goals.filter(g => !g.done).slice(-5);
+    if (activeGoals.length) {
+      base += `\n\nAktív célok:\n${activeGoals.map(g => `- ${g.text}`).join('\n')}`;
+    }
+  }
+
+  base += `\n\nJelenlegi dátum és idő: ${new Date().toLocaleString('hu-HU')}`;
+  return base;
+}
+
+function buildContextMessages() {
+  const limit = parseInt(state.settings.contextSize) || 10;
+  const recentMsgs = state.messages.slice(-limit * 2);
+  return recentMsgs.map(m => ({
+    role: m.role === 'user' ? 'user' : 'assistant',
+    content: m.content
+  }));
+}
+
+// =====================================================================
+// CHAT UI
+// =====================================================================
+function addMessage(role, content, streaming = false) {
+  const msgs = document.getElementById('messages');
+  const p = PERSONALITIES.find(x => x.id === state.settings.personality) || PERSONALITIES[0];
+  const aiName = state.settings.aiName || 'AI';
+  const userName = state.settings.userName || 'Te';
+
+  const div = document.createElement('div');
+  div.className = `msg ${role}`;
+  div.innerHTML = `
+    <div class="msg-avatar">${role === 'user' ? '👤' : p.emoji}</div>
+    <div>
+      <div class="msg-bubble ${streaming ? 'streaming' : ''}" id="bubble-${Date.now()}">${escHtml(content)}</div>
+      <div class="msg-time">${role === 'user' ? userName : (state.settings.aiName || p.name)} · ${timeStr()}</div>
+    </div>`;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+
+  if (streaming) return div.querySelector('.msg-bubble');
+  return div;
+}
+
+function updateMessageBubble(el, text, streaming) {
+  if (!el) return;
+  el.textContent = text;
+  el.classList.toggle('streaming', streaming);
+  const msgs = document.getElementById('messages');
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function addTypingIndicator() {
+  const msgs = document.getElementById('messages');
+  const id = 'typing-' + Date.now();
+  const div = document.createElement('div');
+  div.className = 'msg ai';
+  div.id = id;
+  div.innerHTML = `
+    <div class="msg-avatar">💭</div>
+    <div class="typing-indicator">
+      <div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>
+    </div>`;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+  return id;
+}
+
+function removeTypingIndicator(id) {
+  const el = document.getElementById(id);
+  if (el) el.remove();
+}
+
+function clearChat() {
+  if (state.messages.length > 0) {
+    // Mentés előzménybe
+    saveCurrentSession();
+  }
+  document.getElementById('messages').innerHTML = `
+    <div class="msg ai">
+      <div class="msg-avatar">🤖</div>
+      <div>
+        <div class="msg-bubble">Új beszélgetés kezdődött! Miben segíthetek? 😊</div>
+        <div class="msg-time">Most</div>
+      </div>
+    </div>`;
+  state.messages = [];
+  state.currentTopics = [];
+  updateTopicChips();
+  state.stats.totalSessions++;
+  saveToStorage();
+  notify('info', '🔄 Új beszélgetés kezdve');
+}
+
+function saveCurrentSession() {
+  if (state.messages.length < 2) return;
+  const first = state.messages[0];
+  state.chatHistory.unshift({
+    id: Date.now(),
+    title: first.content.substring(0, 50) + (first.content.length > 50 ? '...' : ''),
+    messages: [...state.messages],
+    time: Date.now(),
+    personality: state.settings.personality,
+    msgCount: state.messages.length
+  });
+  if (state.chatHistory.length > 100) state.chatHistory.pop();
+  saveToStorage();
+}
+
+// =====================================================================
+// TTS
+// =====================================================================
+async function speakText(text) {
+  if (!state.settings.tts) return;
+  stopSpeaking();
+
+  const clean = text.replace(/[*_~`#]/g, '').replace(/\s+/g, ' ').trim();
+  if (!clean) return;
+
+  const ELEVENLABS_KEY = localStorage.getItem('elevenlabs_key') || '';
+
+  if (!ELEVENLABS_KEY) {
+    console.warn('Nincs ElevenLabs kulcs, böngésző TTS fallback');
+    fallbackBrowserTTS(clean);
+    return;
+  }
+
+  const voiceId = state.settings.elevenlabsVoice ||
+    document.getElementById('elevenlabsVoice')?.value || '';
+
+  if (!voiceId) {
+    notify('warning', '⚠️ Nincs kiválasztott ElevenLabs hang – töltsd be a hangokat!');
+    fallbackBrowserTTS(clean);
+    return;
+  }
+
+  try {
+    state.isSpeaking = true;
+    setAvatarState('speaking');
+    document.getElementById('stopBtn').disabled = false;
+    setStatusText('🔊 ElevenLabs beszél...');
+
+    console.log('ElevenLabs TTS indítás:', voiceId, clean.substring(0, 50));
+
+    const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+      method: 'POST',
+      headers: {
+        'xi-api-key': ELEVENLABS_KEY,
+        'Content-Type': 'application/json',
+        'Accept': 'audio/mpeg'
+      },
+      body: JSON.stringify({
+        text: clean,
+        model_id: 'eleven_multilingual_v2',
+        voice_settings: {
+          stability: 0.5,
+          similarity_boost: 0.75,
+          speed: parseFloat(state.settings.ttsRate) || 1.0
+        }
+      })
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error('ElevenLabs TTS hiba:', response.status, errText);
+      notify('error', `ElevenLabs hiba ${response.status} – fallback böngészőre`);
+      state.isSpeaking = false;
+      setAvatarState('');
+      document.getElementById('stopBtn').disabled = true;
+      setStatusText('Várakozás...');
+      fallbackBrowserTTS(clean);
+      return;
+    }
+
+    const audioBlob = await response.blob();
+    const audioUrl = URL.createObjectURL(audioBlob);
+    const audio = new Audio(audioUrl);
+    audio.volume = parseFloat(state.settings.ttsVolume) || 1;
+
+    audio.onended = () => {
+      state.isSpeaking = false;
+      setAvatarState('');
+      document.getElementById('stopBtn').disabled = true;
+      setStatusText('Várakozás...');
+      URL.revokeObjectURL(audioUrl);
+      console.log('ElevenLabs lejátszás kész');
+    };
+
+    audio.onerror = (e) => {
+      console.error('Audio lejátszási hiba:', e);
+      state.isSpeaking = false;
+      setAvatarState('');
+      document.getElementById('stopBtn').disabled = true;
+      setStatusText('Várakozás...');
+      URL.revokeObjectURL(audioUrl);
+      fallbackBrowserTTS(clean);
+    };
+
+    state.currentUtterance = audio;
+    await audio.play();
+    console.log('ElevenLabs audio lejátszás elindult');
+
+  } catch(e) {
+    console.error('speakText kivétel:', e);
+    notify('error', 'TTS hiba: ' + e.message + ' – fallback böngészőre');
+    state.isSpeaking = false;
+    setAvatarState('');
+    document.getElementById('stopBtn').disabled = true;
+    setStatusText('Várakozás...');
+    fallbackBrowserTTS(clean);
+  }
+}
+
+// Fallback függvény
+function fallbackBrowserTTS(text) {
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang = 'hu-HU';
+  utter.rate = parseFloat(state.settings.ttsRate) || 1;
+  utter.pitch = parseFloat(state.settings.ttsPitch) || 1;
+  utter.volume = parseFloat(state.settings.ttsVolume) || 1;
+
+  utter.onstart = () => { state.isSpeaking = true; setAvatarState('speaking'); };
+  utter.onend = () => { state.isSpeaking = false; setAvatarState(''); };
+  utter.onerror = () => { state.isSpeaking = false; setAvatarState(''); };
+
+  state.currentUtterance = utter;
+  state.speechSynth.speak(utter);
+}
+
+function stopSpeaking() {
+  if (state.speechSynth) state.speechSynth.cancel();
+  if (state.currentUtterance) {
+    if (state.currentUtterance instanceof Audio) {
+      state.currentUtterance.pause();
+      state.currentUtterance.currentTime = 0;
+    }
+  }
+  state.isSpeaking = false;
+  setAvatarState('');
+  document.getElementById('stopBtn').disabled = true;
+}
+
+function testTTS() {
+  const aiName = state.settings.aiName || 'AI Társ';
+  speakText(`Szia! Én vagyok ${aiName}. Ez egy hangpróba. A hangfelolvasás működik!`);
+}
+
+function refreshTTSVoices() {
+  const voices = window.speechSynthesis.getVoices();
+  const sel = document.getElementById('ttsVoice');
+  if (!sel) return;
+  const current = state.settings.ttsVoice;
+  sel.innerHTML = '<option value="">Automatikus</option>' +
+    voices.map(v => `<option value="${escAtt(v.name)}" ${v.name === current ? 'selected' : ''}>${v.name} (${v.lang})</option>`).join('');
+}
+
+// =====================================================================
+// WAVEFORM
+// =====================================================================
+function renderWaveform() {
+  const wf = document.getElementById('waveform');
+  wf.innerHTML = Array(16).fill(0).map((_,i) => `<div class="wave-bar" id="wb${i}" style="height:3px"></div>`).join('');
+}
+
+function startWaveAnimation() {
+  state.waveInterval = setInterval(() => {
+    for (let i = 0; i < 16; i++) {
+      const el = document.getElementById('wb'+i);
+      if (el) el.style.height = (3 + Math.random() * 30) + 'px';
+    }
+  }, 100);
+}
+
+function stopWaveAnimation() {
+  if (state.waveInterval) { clearInterval(state.waveInterval); state.waveInterval = null; }
+  for (let i = 0; i < 16; i++) {
+    const el = document.getElementById('wb'+i);
+    if (el) el.style.height = '3px';
+  }
+}
+
+// =====================================================================
+// AVATAR STATE
+// =====================================================================
+function setAvatarState(state_) {
+  const av = document.getElementById('aiAvatar');
+  av.className = 'ai-avatar' + (state_ ? ' ' + state_ : '');
+}
+
+function setStatusText(t) {
+  document.getElementById('aiStatusText').textContent = t;
+}
+
+// =====================================================================
+// MOOD ANALYSIS
+// =====================================================================
+function analyzeMood(text) {
+  const t = text.toLowerCase();
+  let score = 50;
+
+  const pos = ['boldog','örülök','szuper','remek','fantasztikus','jó','szép','csodás','nagyszerű','kiváló','igen','persze','haha','vicces','öröm','sikeres','győzelem','szeretem','kedvelem'];
+  const neg = ['szomorú','rossz','nehéz','fáradt','stressz','ideges','aggódom','nem','sajnos','sajnálom','gond','probléma','sírni','fáj','nehézség','ijedt','félelem'];
+
+  pos.forEach(w => { if (t.includes(w)) score += 6; });
+  neg.forEach(w => { if (t.includes(w)) score -= 6; });
+  score = Math.max(0, Math.min(100, score));
+  state.currentMood = score;
+  state.stats.moodHistory.push(score);
+  if (state.stats.moodHistory.length > 100) state.stats.moodHistory.shift();
+
+  const fill = document.getElementById('moodFill');
+  const label = document.getElementById('moodLabel');
+  if (fill) fill.style.width = score + '%';
+  if (fill) fill.style.background = score > 65 ? 'linear-gradient(90deg, #34d399, #60a5fa)' :
+    score < 35 ? 'linear-gradient(90deg, #f87171, #fb923c)' : 'linear-gradient(90deg, #60a5fa, #a78bfa, #f472b6)';
+  if (label) label.textContent = score > 70 ? '😊 Vidám' : score > 55 ? '🙂 Pozitív' : score > 45 ? '😐 Semleges' : score > 30 ? '😕 Fáradt' : '😔 Szomorú';
+}
+
+// =====================================================================
+// TOPIC ANALYSIS
+// =====================================================================
+function analyzeTopics(text) {
+  const topicMap = {
+    'munka': ['munka','állás','főnök','kolléga','iroda','projekt','fizetés','karrier','feladat'],
+    'család': ['anyám','apám','testvér','gyerek','feleség','férj','nagyszülő','rokon','otthon'],
+    'egészség': ['egészség','beteg','orvos','sport','edzés','futás','diéta','alvás','fájdalom'],
+    'utazás': ['utazás','nyaralás','repülő','szálloda','tengerpart','külföldi','város','ország'],
+    'étel': ['enni','étel','étterem','főzés','recept','ebéd','vacsora','reggeli','éhes'],
+    'tech': ['számítógép','telefon','app','program','internet','videójáték','tech','gép'],
+    'tanulás': ['tanulás','iskola','egyetem','vizsga','könyv','olvasás','tanár','tudás'],
+    'érzések': ['érzem','érzés','boldog','szomorú','aggódom','örülök','szeretem','félelem']
+  };
+
+  const t = text.toLowerCase();
+  const found = [];
+  Object.entries(topicMap).forEach(([topic, words]) => {
+    if (words.some(w => t.includes(w))) {
+      found.push(topic);
+      state.stats.topicFreq[topic] = (state.stats.topicFreq[topic] || 0) + 1;
+    }
+  });
+
+  state.currentTopics = [...new Set([...state.currentTopics, ...found])].slice(-6);
+  updateTopicChips();
+}
+
+function updateTopicChips() {
+  const el = document.getElementById('topicChips');
+  if (!el) return;
+  if (state.currentTopics.length === 0) {
+    el.innerHTML = '<span style="font-size:0.78rem; color:var(--text3)">Még nincs téma...</span>';
+  } else {
+    el.innerHTML = state.currentTopics.map(t => `<span class="topic-chip">${t}</span>`).join('');
+  }
+}
+
+// =====================================================================
+// MEMORY EXTRACTION
+// =====================================================================
+function extractMemory(userText, aiText) {
+  const t = userText.toLowerCase();
+  const patterns = [
+    { re: /a nevem (.+?)[\.\!\?]?$/, fmt: m => `A neve: ${m[1]}` },
+    { re: /(\d+) éves vagyok/, fmt: m => `Kora: ${m[1]} év` },
+    { re: /szeretem (.+?)[\.\!\?]?$/, fmt: m => `Szereti: ${m[1]}` },
+    { re: /dolgozom (.+?)[\.\!\?]/i, fmt: m => `Dolgozik: ${m[1]}` },
+    { re: /lakom (.+?)[\.\!\?]/i, fmt: m => `Lakik: ${m[1]}` },
+    { re: /van egy (.+?) nevű/, fmt: m => `Ismerős: ${m[1]}` },
+    { re: /utálom (.+?)[\.\!\?]?$/, fmt: m => `Nem szereti: ${m[1]}` },
+    { re: /kedvenc (.+?) a (.+?)[\.\!\?]?$/, fmt: m => `Kedvenc ${m[1]}: ${m[2]}` }
+  ];
+
+  patterns.forEach(p => {
+    const m = t.match(p.re);
+    if (m) {
+      const text = p.fmt(m);
+      if (!state.longTermMemory.find(x => x.text === text)) {
+        state.longTermMemory.push({ text, time: Date.now(), type: 'auto' });
+        if (state.longTermMemory.length > 200) state.longTermMemory.shift();
+      }
+    }
+  });
+}
+
+// =====================================================================
+// MEMORY PANEL
+// =====================================================================
+function updateMemoryPanel() {
+  const ltmList = document.getElementById('ltmList');
+  if (state.longTermMemory.length === 0) {
+    ltmList.innerHTML = '<div style="color:var(--text3); font-size:0.82rem">Még nincs bejegyzés. Mesélj magadról, és az AI megjegyzi!</div>';
+  } else {
+    ltmList.innerHTML = state.longTermMemory.slice(-30).reverse().map((m,i) => `
+      <div class="memory-item">
+        <span class="memory-text">${escHtml(m.text)}</span>
+        <span class="memory-time">${relTime(m.time)}</span>
+        <span class="memory-del" onclick="deleteMemory(${state.longTermMemory.length-1-i})">✕</span>
+      </div>`).join('');
+  }
+
+  const goalList = document.getElementById('goalList');
+  if (state.goals.length === 0) {
+    goalList.innerHTML = '<div style="color:var(--text3); font-size:0.82rem">Mesélj céljaidról, és az AI nyomon követi őket!</div>';
+  } else {
+    goalList.innerHTML = state.goals.slice(-20).reverse().map((g,i) => `
+      <div class="memory-item">
+        <span class="memory-text ${g.done ? 'line-through' : ''}" style="${g.done ? 'text-decoration:line-through;opacity:0.5' : ''}">${escHtml(g.text)}</span>
+        <span class="memory-time">${relTime(g.time)}</span>
+        <label class="toggle" style="margin-left:4px"><input type="checkbox" ${g.done?'checked':''} onchange="toggleGoal(${state.goals.length-1-i})"><span class="toggle-slider"></span></label>
+        <span class="memory-del" onclick="deleteGoal(${state.goals.length-1-i})">✕</span>
+      </div>`).join('');
+  }
+
+  setTxt('memSTMCount', state.messages.length);
+  setTxt('memLTMCount', state.longTermMemory.length);
+  setTxt('memTopicCount', Object.keys(state.stats.topicFreq).length);
+  setTxt('memGoalCount', state.goals.filter(g=>!g.done).length);
+}
+
+function deleteMemory(i) {
+  state.longTermMemory.splice(i, 1);
+  saveToStorage();
+  updateMemoryPanel();
+}
+
+function toggleGoal(i) {
+  state.goals[i].done = !state.goals[i].done;
+  saveToStorage();
+  updateMemoryPanel();
+}
+
+function deleteGoal(i) {
+  state.goals.splice(i, 1);
+  saveToStorage();
+  updateMemoryPanel();
+}
+
+function addMemoryManually() {
+  const inp = document.getElementById('newMemInput');
+  const text = inp.value.trim();
+  if (!text) return;
+  state.longTermMemory.push({ text, time: Date.now(), type: 'manual' });
+  inp.value = '';
+  saveToStorage();
+  updateMemoryPanel();
+  notify('success', '✓ Emlék hozzáadva');
+}
+
+function addGoalManually() {
+  const inp = document.getElementById('newGoalInput');
+  const text = inp.value.trim();
+  if (!text) return;
+  state.goals.push({ text, time: Date.now(), done: false });
+  inp.value = '';
+  saveToStorage();
+  updateMemoryPanel();
+  notify('success', '✓ Cél hozzáadva');
+}
+
+function clearMemory() {
+  if (!confirm('Biztosan törlöd az összes memóriát?')) return;
+  state.longTermMemory = [];
+  state.goals = [];
+  saveToStorage();
+  updateMemoryPanel();
+  notify('info', '🗑️ Memória törölve');
+}
+
+function exportMemory() {
+  const data = JSON.stringify({ longTermMemory: state.longTermMemory, goals: state.goals }, null, 2);
+  downloadFile('aitars_memoria.json', data, 'application/json');
+}
+
+async function generateInsights() {
+  if (!state.apiKeys.some(k=>k)) { notify('error', 'Nincs API kulcs'); return; }
+  if (state.longTermMemory.length < 3) { notify('warning', 'Kevés memóriabejegyzés az elemzéshez'); return; }
+
+  const memStr = state.longTermMemory.map(m=>m.text).join(', ');
+  const topicStr = Object.entries(state.stats.topicFreq).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([t,c])=>`${t}(${c})`).join(', ');
+
+  const msgs = [
+    { role: 'system', content: 'Elemezd a felhasználó ismert adatait, és adj 3 rövid, hasznos betekintést magyarul. Légy személyes és empatikus.' },
+    { role: 'user', content: `Ismert tények: ${memStr}\nLeggyakoribb témák: ${topicStr}\n\nAdj 3 rövid betekintést vagy megfigyelést.` }
+  ];
+
+  const el = document.getElementById('insightList');
+  el.innerHTML = '<div class="spinner"></div>';
+
+  try {
+    const res = await callGroq(msgs, false);
+    const data = await res.json();
+    const text = data.choices?.[0]?.message?.content || '';
+    const insights = text.split('\n').filter(l => l.trim()).slice(0,6);
+    el.innerHTML = insights.map(l => `
+      <div class="insight-box">💡 <span>${escHtml(l.replace(/^\d+[\.\)]\s*/,''))}</span></div>`).join('');
+  } catch(e) {
+    el.innerHTML = `<div style="color:var(--red)">Hiba: ${e.message}</div>`;
+  }
+}
+
+// =====================================================================
+// STATS PANEL
+// =====================================================================
+function updateStatsPanel() {
+  setTxt('statTotalMsgs', state.stats.totalMsgs);
+  setTxt('statTotalSessions', state.stats.totalSessions);
+  setTxt('statTotalTokens', state.stats.totalTokens);
+  setTxt('statTotalApiCalls', state.stats.totalApiCalls);
+
+  const times = state.stats.responseTimes;
+  const avg = times.length ? Math.round(times.reduce((a,b)=>a+b,0)/times.length) : 0;
+  setTxt('statAvgResp', avg ? avg+'ms' : '–');
+
+  const moods = state.stats.moodHistory;
+  const avgMood = moods.length ? Math.round(moods.reduce((a,b)=>a+b,0)/moods.length) : 50;
+  setTxt('statMoodAvg', avgMood > 60 ? '😊 Pozitív' : avgMood > 40 ? '😐 Semleges' : '😕 Negatív');
+
+  // Kulcs statisztika
+  const skd = document.getElementById('statsKeyDetail');
+  skd.innerHTML = state.apiKeys.map((k,i) => {
+    if (!k) return '';
+    const ks = state.keyStats[i];
+    const pct = Math.min(100, (ks.requests / (parseInt(state.settings.rotationLimit)||20)) * 100 % 100);
+    return `
+    <div class="progress-wrap">
+      <div class="progress-label-row">
+        <span>Kulcs #${i+1} ${i===state.activeKeyIndex?'(aktív)':''}</span>
+        <span>${ks.requests} kérés / ${ks.errors} hiba / ${Math.round(ks.tokens)} token</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+    </div>`;
+  }).join('');
+
+  // Válaszidő chart
+  const chart = document.getElementById('responseTimesChart');
+  const lastTimes = times.slice(-10);
+  const maxT = Math.max(...lastTimes, 1);
+  chart.innerHTML = lastTimes.map((t,i) => {
+    const h = Math.max(4, (t/maxT)*70);
+    return `<div title="${t}ms" style="flex:1; height:${h}px; background:linear-gradient(to top, var(--accent), var(--accent2)); border-radius:3px 3px 0 0; position:relative;">
+      <span style="position:absolute; bottom:-18px; left:50%; transform:translateX(-50%); font-size:0.6rem; color:var(--text3)">${i===lastTimes.length-1?t+'ms':''}</span>
+    </div>`;
+  }).join('');
+
+  // Témák
+  const topTopics = document.getElementById('topTopics');
+  const sorted = Object.entries(state.stats.topicFreq).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  topTopics.innerHTML = sorted.map(([t,c]) => `<span class="topic-chip">${t} (${c})</span>`).join('');
+
+  updateKeyProgressBars();
+}
+
+function resetStats() {
+  if (!confirm('Biztosan nullázod a statisztikákat?')) return;
+  state.stats = { totalMsgs:0, totalSessions:0, totalTokens:0, totalApiCalls:0, responseTimes:[], moodHistory:[], topicFreq:{}, modelStats:{} };
+  state.keyStats = state.keyStats.map(ks => ({ ...ks, requests:0, errors:0, tokens:0 }));
+  saveToStorage();
+  updateStatsPanel();
+  notify('info', '🔄 Statisztikák nullázva');
+}
+
+// =====================================================================
+// HISTORY
+// =====================================================================
+function renderHistory() {
+  const list = document.getElementById('historyList');
+  const query = document.getElementById('historySearch').value.toLowerCase();
+  const filtered = state.chatHistory.filter(h =>
+    !query || h.title.toLowerCase().includes(query) ||
+    h.messages.some(m => m.content.toLowerCase().includes(query))
+  );
+
+  if (filtered.length === 0) {
+    list.innerHTML = '<div style="color:var(--text3); font-size:0.82rem; text-align:center; padding:40px">Nincs találat</div>';
+    return;
+  }
+
+  list.innerHTML = filtered.map(h => {
+    const p = PERSONALITIES.find(x => x.id === h.personality) || PERSONALITIES[0];
+    return `
+    <div class="history-item" onclick="loadHistory(${h.id})">
+      <div class="history-title">${p.emoji} ${escHtml(h.title)}</div>
+      <div class="history-preview">${h.messages.length > 1 ? escHtml(h.messages[h.messages.length-1].content.substring(0,80)) : '...'}</div>
+      <div class="history-meta">
+        <span>📅 ${new Date(h.time).toLocaleString('hu-HU')}</span>
+        <span>💬 ${h.msgCount} üzenet</span>
+        <span>🎭 ${p.name}</span>
+        <button onclick="event.stopPropagation(); deleteHistoryItem(${h.id})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:0.75rem;">✕ Töröl</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function loadHistory(id) {
+  const h = state.chatHistory.find(x => x.id === id);
+  if (!h) return;
+  if (state.messages.length > 0) saveCurrentSession();
+  state.messages = [...h.messages];
+  if (h.personality) { state.settings.personality = h.personality; renderPersonalities(); }
+
+  const msgs = document.getElementById('messages');
+  msgs.innerHTML = '';
+  h.messages.forEach(m => addMessage(m.role === 'user' ? 'user' : 'ai', m.content));
+  switchTab('chat');
+  notify('success', '✓ Korábbi beszélgetés visszatöltve');
+}
+
+function deleteHistoryItem(id) {
+  state.chatHistory = state.chatHistory.filter(h => h.id !== id);
+  saveToStorage();
+  renderHistory();
+}
+
+function filterHistory() { renderHistory(); }
+
+function clearHistory() {
+  if (!confirm('Biztosan törlöd az összes előzményt?')) return;
+  state.chatHistory = [];
+  saveToStorage();
+  renderHistory();
+  notify('info', '🗑️ Előzmények törölve');
+}
+
+// =====================================================================
+// UTILITY
+// =====================================================================
+function updateSlider(el, valId) {
+  const vEl = document.getElementById(valId);
+  if (!vEl) return;
+  const v = parseFloat(el.value);
+  // Formatálás ID alapján
+  if (valId.includes('Val') || valId.includes('Siz') || valId.includes('Lim')) {
+    if (valId === 'rotationLimitVal') vEl.textContent = v + ' rpm';
+    else if (valId === 'silenceVal') vEl.textContent = v + 's';
+    else if (valId === 'micSensVal') vEl.textContent = v.toFixed(3);
+    else if (valId.includes('Rate') || valId.includes('Speed')) vEl.textContent = parseFloat(v).toFixed(2) + 'x';
+    else if (valId === 'quickSpeedVal') vEl.textContent = parseFloat(v).toFixed(1) + 'x';
+    else vEl.textContent = v;
+  } else {
+    vEl.textContent = v;
+  }
+}
+
+function notify(type, msg) {
+  const wrap = document.getElementById('notifWrap');
+  const n = document.createElement('div');
+  const icons = { success:'✓', error:'✗', info:'ℹ', warning:'⚠' };
+  n.className = `notif ${type}`;
+  n.innerHTML = `<span>${icons[type]||'•'}</span><span>${msg}</span>`;
+  wrap.appendChild(n);
+  setTimeout(() => { n.style.opacity='0'; n.style.transform='translateX(100%)'; setTimeout(()=>n.remove(), 300); }, 4000);
+}
+
+function setTxt(id, v) { const el = document.getElementById(id); if (el) el.textContent = v; }
+function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function escAtt(s) { return String(s).replace(/"/g,'&quot;'); }
+function timeStr() { return new Date().toLocaleTimeString('hu-HU', { hour:'2-digit', minute:'2-digit' }); }
+function relTime(ts) {
+  if (!ts) return '';
+  const d = Date.now() - ts;
+  if (d < 60000) return 'Most';
+  if (d < 3600000) return Math.round(d/60000) + ' perce';
+  if (d < 86400000) return Math.round(d/3600000) + ' órája';
+  return Math.round(d/86400000) + ' napja';
+}
+
+function downloadFile(name, content, type) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([content], { type }));
+  a.download = name;
+  a.click();
+}
+
+function exportData() {
+  const data = JSON.stringify({
+    settings: state.settings,
+    messages: state.messages,
+    longTermMemory: state.longTermMemory,
+    goals: state.goals,
+    stats: state.stats,
+    chatHistory: state.chatHistory
+  }, null, 2);
+  downloadFile('aitars_export.json', data, 'application/json');
+  notify('success', '📤 Exportálás kész');
+}
+
+function clearAllData() {
+  if (!confirm('BIZTOSAN TÖRLÖD AZ ÖSSZES ADATOT? Ez visszafordíthatatlan!')) return;
+  if (!confirm('Megerősítés: Az összes kulcs, üzenet, memória és statisztika törlődik. Folytatod?')) return;
+  localStorage.clear();
+  location.reload();
+}
+
+function updateAIName() {
+  const name = state.settings.aiName || 'AI Társ';
+  document.title = name + ' – Magyar Hangalapú Társalgó';
+}
+
+function updateHeaderModel() {
+  const m = state.settings.model;
+  const el = document.getElementById('headerModel');
+  if (el) el.textContent = m ? m.split('-').slice(0,3).join('-') : '–';
+}
+
+function updateAllUI() {
+  updateApiStatus();
+  updateKeyRotationDots();
+  updateKeyCountBadges();
+  updateTopicChips();
+  renderHistory();
+}
+
+function startMinuteTimer() {
+  state.minuteTimer = setInterval(() => {
+    // Frissíti a sidebar kulcsdotokat
+    updateKeyRotationDots();
+  }, 10000);
+}
+
+// =====================================================================
+// INIT
+// =====================================================================
+window.addEventListener('load', init);
+window.addEventListener('beforeunload', saveToStorage);
+</script>
+</body>
+</html>
